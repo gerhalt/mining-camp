@@ -1,21 +1,21 @@
 Automated deployment of Minecraft servers on AWS spot instances.
 
-Developed with:
-
-* Ansible 2.3.2.0
-* awscli 1.11.134
-* botocore 1.6.1
-
-
 Quick Guide
 -----------
 
 You'll need your AWS credentials available for most of these operations, under
-the `minecraft` profile.
+the `minecraft` profile. `~/.aws/credentials` will look like:
 
-_~/.aws/credentials_
 ```
 [minecraft]
 aws_access_key_id = <your_access_key_here>
 aws_secret_access_key = <your_secret_key_here>
+```
+
+Check out this repository, and `cd` into it. Install the requirements (using a
+virtual environment is highly recommended) using pip.
+
+```
+$ mkvirtualenv minecraft
+(minecraft) $ pip install -r requirements.txt
 ```
