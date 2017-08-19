@@ -9,9 +9,22 @@ resource "aws_vpc" "default" {
   cidr_block = "10.0.0.0/16"
 }
 
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.default.id}"
+  availability_zone = "${var.aws_availability_zone}"
+  cidr_block        = "10.0.0.0/16"
+}
+
 # Create a gateway for our VPC
 resource "aws_internet_gateway" "default" {
   vpc_id = "${aws_vpc.default.id}"
+}
+
+# We'll need to add a route to the internet from our VPC
+resource "aws_route" "internet_access" {
+  route_table_id         = "${aws_vpc.default.main_route_table_id}"
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = "${aws_internet_gateway.default.id}"
 }
 
 # Security group that allows SSH, Web Traffic, and a special port for our
@@ -88,9 +101,9 @@ data "aws_ami" "ubuntu" {
 resource "aws_launch_configuration" "minecraft" {
   name              = "minecraft"
   image_id          = "${data.aws_ami.ubuntu.id}"
-  instance_type     = "i3.large" 
+  instance_type     = "i3.large"
   spot_price        = "${var.max_spot_price}"
-  ebs_optimized     = false 
+  ebs_optimized     = false
   enable_monitoring = false
 
   # Has no key associated for accessing the instance
@@ -98,40 +111,18 @@ resource "aws_launch_configuration" "minecraft" {
 
   iam_instance_profile = "${aws_iam_instance_profile.minecraft.name}"
   security_groups      = ["${aws_security_group.default.id}"]
+  key_name             = "aws-public"
 }
 
 # Autoscaling Group
 resource "aws_autoscaling_group" "minecraft" {
-  availability_zones   = "${var.aws_availability_zones}"
+  vpc_zone_identifier = ["${aws_subnet.main.id}"]
+
   name                 = "minecraft"
-  desired_capacity     = 0
+  desired_capacity     = 1
   min_size             = 0
   max_size             = 1
   launch_configuration = "${aws_launch_configuration.minecraft.name}"
 
-  # TODO: Does this need a subnet?
-
   tags = []
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

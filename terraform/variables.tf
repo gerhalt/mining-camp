@@ -17,7 +17,7 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "aws_availability_zones" {
-  description = "AWS availability zones to launch servers in."
-  default     = ["us-east-1d"]
+variable "aws_availability_zone" {
+  description = "AWS availability zone to launch servers in."
+  default     = "us-east-1d"
 }
