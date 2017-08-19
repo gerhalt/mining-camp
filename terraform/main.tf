@@ -47,8 +47,8 @@ resource "aws_security_group" "default" {
 
   # Minecraft
   ingress {
-    from_port   = "${var.minecraft_port}"
-    to_port     = "${var.minecraft_port}"
+    from_port   = "${var.minecraft["port"]}"
+    to_port     = "${var.minecraft["port"]}"
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -61,3 +61,63 @@ resource "aws_security_group" "default" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+# TODO: Set up Elastic IP
+
+# AMI to use for our instances
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+
+# Launch configuration
+# We'll use this to easy turn on and off our server without having to remake
+# our entire instance configuration every time.
+
+
+resource "aws_launch_configuration" "minecraft" {
+  name          = "minecraft-conf"
+  image_id      = "${data.aws_ami.ubuntu.id}"
+  instance_type = "i3.large" 
+  spot_price    = "${var.max_spot_price}"
+  ebs_optimized = false 
+
+  iam_instance_profile = "${aws_iam_role.minecraft_role.name}"
+  security_groups      = ["${aws_security_group.default.id}"]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
