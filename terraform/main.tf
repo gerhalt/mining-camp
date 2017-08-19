@@ -85,20 +85,34 @@ data "aws_ami" "ubuntu" {
 # Launch configuration
 # We'll use this to easy turn on and off our server without having to remake
 # our entire instance configuration every time.
-
-
 resource "aws_launch_configuration" "minecraft" {
-  name          = "minecraft-conf"
-  image_id      = "${data.aws_ami.ubuntu.id}"
-  instance_type = "i3.large" 
-  spot_price    = "${var.max_spot_price}"
-  ebs_optimized = false 
+  name              = "minecraft"
+  image_id          = "${data.aws_ami.ubuntu.id}"
+  instance_type     = "i3.large" 
+  spot_price        = "${var.max_spot_price}"
+  ebs_optimized     = false 
+  enable_monitoring = false
 
-  iam_instance_profile = "${aws_iam_role.minecraft_role.name}"
+  # Has no key associated for accessing the instance
+  # Has no block device mounted, is one necessary?
+
+  iam_instance_profile = "${aws_iam_instance_profile.minecraft.name}"
   security_groups      = ["${aws_security_group.default.id}"]
 }
 
+# Autoscaling Group
+resource "aws_autoscaling_group" "minecraft" {
+  availability_zones   = "${var.aws_availability_zones}"
+  name                 = "minecraft"
+  desired_capacity     = 0
+  min_size             = 0
+  max_size             = 1
+  launch_configuration = "${aws_launch_configuration.minecraft.name}"
 
+  # TODO: Does this need a subnet?
+
+  tags = []
+}
 
 
 

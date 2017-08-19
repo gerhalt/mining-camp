@@ -2,7 +2,8 @@ variable "minecraft" {
   type = "map"
 
   default = {
-    port = 25565
+    port        = 25565
+    bucket_name = "josh-minecraft"
   }
 }
 
@@ -14,4 +15,9 @@ variable "max_spot_price" {
 variable "aws_region" {
   description = "AWS region to launch servers in."
   default     = "us-east-1"
+}
+
+variable "aws_availability_zones" {
+  description = "AWS availability zones to launch servers in."
+  default     = ["us-east-1d"]
 }
