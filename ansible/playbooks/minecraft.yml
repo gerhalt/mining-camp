@@ -1,0 +1,34 @@
+- hosts: all
+  tags:
+  - deploy
+
+  tasks:
+  - name: "Install Prerequisites"
+    become: true
+    apt:
+      name: "{{item}}"
+      update_cache: yes
+    with_items:
+    - openjdk-8-jre-headless
+    - awscli
+
+  - name: "Create minecraft root directory"
+    become: true
+    file:
+      path: /minecraft
+      owner: ubuntu
+      group: ubuntu
+      state: directory
+
+  - name: "Mount NVMe device to minecraft directory"
+    become: true
+    become_user: root
+    shell: |
+        mkfs.ext4 /dev/nvme0n1
+        mount -t ext4 /dev/nvme0n1 /minecraft
+    ignore_errors: true
+
+  - name: "Clone git repo into minecraft directory"
+    git:
+      repo: https://github.com/gerhalt/mining-camp.git
+      dest: /minecraft/mining-camp
