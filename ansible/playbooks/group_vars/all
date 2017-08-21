@@ -1,0 +1,8 @@
+aws_profile: minecraft
+aws_region: us-east-1
+
+minecraft_tag: minecraft
+
+s3_bucket: josh-minecraft
+server_name: daftcyborg
+server_file: daftcyborg-server-8-20-2017.tgz

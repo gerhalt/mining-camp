@@ -3,14 +3,15 @@
   - deploy
 
   tasks:
-  - name: "Install Prerequisites"
+  - name: "Install prerequisites"
     become: true
     apt:
       name: "{{item}}"
       update_cache: yes
     with_items:
-    - openjdk-8-jre-headless
     - awscli
+    - openjdk-8-jre-headless
+    - python-pip
 
   - name: "Create minecraft root directory"
     become: true
@@ -32,3 +33,20 @@
     git:
       repo: https://github.com/gerhalt/mining-camp.git
       dest: /minecraft/mining-camp
+
+  - name: "Install Python requirements"
+    become: true
+    shell: |
+      pip install -r '/minecraft/mining-camp/requirements.txt'
+
+  - name: "Retrieve server tarball from S3"
+    s3:
+      bucket: "{{s3_bucket}}"
+      object: "/{{server_name}}/{{server_file}}"
+      dest: "/minecraft/{{server_file}}"
+      mode: get
+
+  - name: "Extract and install server"
+    shell: |
+      cd /minecraft
+      tar -xzvf {{server_file}}
