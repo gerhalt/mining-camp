@@ -119,7 +119,7 @@ resource "aws_autoscaling_group" "minecraft" {
   vpc_zone_identifier = ["${aws_subnet.main.id}"]
 
   name                 = "minecraft"
-  desired_capacity     = 1
+  desired_capacity     = 0
   min_size             = 0
   max_size             = 1
   launch_configuration = "${aws_launch_configuration.minecraft.name}"
