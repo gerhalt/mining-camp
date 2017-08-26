@@ -19,3 +19,24 @@ virtual environment is highly recommended) using pip.
 $ mkvirtualenv minecraft
 (minecraft) $ pip install -r requirements.txt
 ```
+
+Configuring AWS is easy. Download and install terraform (I've renamed it to
+`terraform` in this example, and edit `terraform/variables.tf`. Then, from the
+root directory of your cloned git directory run:
+
+```
+./terraform apply terraform/
+```
+
+NOTE: Tested and built with Terraform v0.10.2.
+
+Once your spot instance is up and running, you can provision and deploy via
+ansible. Again, from the root project directory, run:
+
+```
+cd ansible
+ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh minecraft.yml
+```
+
+A couple notes: on my setup, the paramiko library they used ran into errors
+when attempting to gather facts from the server, so I use `-c ssh` instead.

@@ -11,6 +11,7 @@
     with_items:
     - awscli
     - openjdk-8-jre-headless
+    - python
     - python-pip
 
   - name: "Create minecraft root directory"
@@ -50,3 +51,24 @@
     shell: |
       cd /minecraft
       tar -xzvf {{server_file}}
+
+  - name: "Install config files"
+    copy:
+      src: "files/prospector.cfg"
+      dest: "/minecraft/prospector.cfg"
+
+  - name: "Add backup script to crontab"
+    cron:
+      name: "minecraft backup monitor"
+      minute: "*/5"
+      job: "/minecraft/mining-camp/utilities/prospector.py backup"
+
+  - name: "Add emergency shutdown script to crontab"
+    cron:
+      name: "spot instance shutdown monitor"
+      job: "/minecraft/mining-camp/utilities/shutdown.sh"
+
+  - name: "Start server bootstrap script"
+    shell: |
+      cd /minecraft/{{server_name}}
+      /minecraft/mining-camp/utilities/bootstrap.sh
