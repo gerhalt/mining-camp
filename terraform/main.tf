@@ -75,8 +75,6 @@ resource "aws_security_group" "default" {
   }
 }
 
-# TODO: Set up Elastic IP
-
 # AMI to use for our instances
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -106,8 +104,7 @@ resource "aws_launch_configuration" "minecraft" {
   ebs_optimized     = false
   enable_monitoring = false
 
-  # Has no key associated for accessing the instance
-  # Has no block device mounted, is one necessary?
+  associate_public_ip_address = true
 
   iam_instance_profile = "${aws_iam_instance_profile.minecraft.name}"
   security_groups      = ["${aws_security_group.default.id}"]
