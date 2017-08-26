@@ -70,7 +70,8 @@ class Prospector(object):
                 with ZipFile(tmp_path, 'r') as z:
                     # This makes the assumption that the archive contains the world
                     # as a subfolder, so it extracts correctly.
-                    z.extractall(self.server_root_dir)
+                    z.extractall(os.path.join(self.server_root_dir,
+                                              self.server_name))
             except BadZipfile:
                 logger.error("Zipfile is bad!")
 
@@ -201,7 +202,10 @@ class Prospector(object):
 
     @property
     def _backup_path(self):
-        return os.path.join(self.server_root_dir, 'backups', self.world_name)
+        return os.path.join(self.server_root_dir,
+                            self.server_name,
+                            'backups',
+                            self.world_name)
 
 
 def main():

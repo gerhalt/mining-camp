@@ -4,6 +4,7 @@
 
   tasks:
   - name: "Install Python (required for fact gathering)"
+    become: true
     raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
 
 - name: "Installation"
