@@ -1,4 +1,13 @@
-- hosts: all
+- name: "Pre-fact-gathering Setup"
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: "Install Python (required for fact gathering)"
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+
+- name: "Installation"
+  hosts: all
   tags:
   - deploy
 
@@ -11,7 +20,6 @@
     with_items:
     - awscli
     - openjdk-8-jre-headless
-    - python
     - python-pip
 
   - name: "Create minecraft root directory"
@@ -52,10 +60,15 @@
       cd /minecraft
       tar -xzvf {{server_file}}
 
-  - name: "Install config files"
+  - name: "Install prospector config"
     copy:
       src: "files/prospector.cfg"
       dest: "/minecraft/prospector.cfg"
+
+  - name: "Install minecraft server config"
+    copy:
+      src: "files/server.properties"
+      dest: "/minecraft/{{server_name}}/config/server.properties"
 
   - name: "Add backup script to crontab"
     cron:
@@ -71,3 +84,6 @@
   - name: "Start server bootstrap script"
     shell: |
       /minecraft/mining-camp/utilities/bootstrap.sh /minecraft/{{server_name}}
+
+  - name: "Assign elastic ip"
+    local_action: shell aws ec2 associate-address --instance-id {{ec2_id}} --allocation-id {{minecraft_eip_alloc_id}}
