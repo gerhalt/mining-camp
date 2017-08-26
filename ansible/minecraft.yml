@@ -70,5 +70,4 @@
 
   - name: "Start server bootstrap script"
     shell: |
-      cd /minecraft/{{server_name}}
-      /minecraft/mining-camp/utilities/bootstrap.sh
+      /minecraft/mining-camp/utilities/bootstrap.sh /minecraft/{{server_name}}
