@@ -82,6 +82,9 @@
       name: "spot instance shutdown monitor"
       job: "/minecraft/mining-camp/utilities/shutdown.sh"
 
+  - name: "Fetch most recent backup from S3 and install it"
+    shell: /minecraft/mining-camp/utilities/prospector.py fetch
+
   - name: "Start server bootstrap script"
     shell: |
       /minecraft/mining-camp/utilities/bootstrap.sh /minecraft/{{server_name}}
