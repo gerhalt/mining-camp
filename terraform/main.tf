@@ -65,6 +65,12 @@ resource "aws_security_group" "default" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port   = "${var.minecraft["port"]}"
+    to_port     = "${var.minecraft["port"]}"
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   # Outbound
   egress {
