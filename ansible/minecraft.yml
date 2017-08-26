@@ -90,4 +90,4 @@
       /minecraft/mining-camp/utilities/bootstrap.sh /minecraft/{{server_name}}
 
   - name: "Assign elastic ip"
-    local_action: shell aws ec2 associate-address --instance-id {{ec2_id}} --allocation-id {{minecraft_eip_alloc_id}}
+    local_action: shell aws ec2 associate-address --region {{aws_region}} --instance-id {{ec2_id}} --allocation-id {{minecraft_eip_alloc_id}}
