@@ -139,8 +139,8 @@ named differently when your server is run.
 be left as _25565_, otherwise you'll need to adjust the Terraform
 configuration. Fields I recommend changing are _level-name_, _level-seed_, and
 _motd_.
-* Add yourself and any other players desired to _ops.json_.
-* Update _server-icon.png_ to a custom icon.
+* Add yourself and any other players desired to `ops.json`.
+* Update `server-icon.png` to a custom icon.
 
 Copy server.properties to `ansible/files/server.properties`, which Ansible will
 install every time over the top of the properties file in the archive, allowing
@@ -170,26 +170,48 @@ $ aws s3 cp daftcyborg-server-12-20-2017.tgz s3://josh-minecraft/daftcyborg/
 
 === Execution
 
-==== 
+Up until now, everything in EC2 is created but no instances are running. To
+launch an instance, open `terraform/main.tf` and edit the _minecraft_
+`aws_autoscaling_group`'s `desired_capacity` from _0_ to _1_. Then re-run
+terraform, like:
 
+```
+./terraform apply terraform/
+```
 
-Once your spot instance is up and running, you can provision and deploy via
-ansible. Edit `ansible/group_vars/all` with your settings, in particular:
-
-* _minecraft_eip_alloc_id_ will need to be the ID of an elastic IP you've created manually.
-* _s3_bucket_ should match the name of the bucket set in the terraform config.
-* _server_name_ determines the name of the root directory in S3.
-* _server_file_ should be the full name 
-
-Then, from the root project directory, run:
+Now you have an instance running, but it hasn't been set up to run our server.
+Jump to the `ansible` directory, and run the playbook to configure the instance
+and launch the minecraft server:
 
 ```
 cd ansible
 ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh minecraft.yml
 ```
 
-A couple notes: on my setup, the paramiko library they used ran into errors
-when attempting to gather facts from the server, so I use `-c ssh` instead.
+The `ec2.py` inventory file should automatically pick up your new instance
+after one or two attempts. On my setup, the Paramiko Python library Ansible
+uses by default ran into errors when attempting to gather facts from the server,
+so I use `-c ssh` instead.
+
+Sometimes the NVMe mount will succeed, but the subsequent folder creation will
+fail due to the mount not being available fast enough. If this occurs, simply
+re-run.
+
+== Troubleshooting
+
+If you want to connect to your instance directly, use the key-pair you set up
+initially to SSH into the instance:
+
+```
+ssh -i ~/.ssh/aws ubuntu@<elastic_ip>
+```
+
+Once you're on the box, you can attach to the tmux session the server has been
+started in:
+
+```
+tmux attach-session -t minecraft
+```
 
 == TODO
 
