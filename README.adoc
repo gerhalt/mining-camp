@@ -8,8 +8,8 @@ instances.
 == Setup
 
 Start by checking out this repository, and navigating to your checkout-out
-directory. All sample commands provided are from the root directory unless
-otherwise noted.
+directory. Sample bash commands provided are from the root directory unless
+otherwise noted and .
 
 === Requirements
 
@@ -18,6 +18,9 @@ build and tested with are in parenthesis):
 
 * `pip` (v9.0.1)
 * `terraform` (0.10.2)
+
+You'll need an appropriate version of the JDK/JVM to run the server locally at
+least once, allowing it to generate the necessary configuration files.
 
 You'll also need a fully configured AWS developer account, with an access key
 and secret pair. You'll need to configure those on your system in the following
@@ -35,6 +38,10 @@ the `minecraft` profile. `~/.aws/credentials` will look like:
 aws_access_key_id = <your_access_key_here>
 aws_secret_access_key = <your_secret_key_here>
 ```
+
+If you have more than one AWS profile, you'll need to set the `AWS_PROFILE`
+environment variable with `export AWS_PROFILE=minecraft` for the `aws` commands
+below to work.
 
 The one configuration piece in the AWS console that will need to be done by
 hand is creation of an elastic IP. In the AWS console, do the following:
@@ -70,6 +77,16 @@ setting that absolutely needs to be changed is the `bucket_name`, which should
 match the name of the S3 bucket you'll be using. You'll also need to update the
 `aws_region`, if you're not running in the default region ('us-east-1').
 
+Then, from the root directory of your modified `mining-camp` checkout run:
+
+```
+./terraform apply terraform/
+```
+
+Once this has successfully completed, your AWS configuration is complete.
+Unless you change terraform settings or need to shutdown your server you won't
+need to run this again.
+
 ==== Ansible
 
 Ansible is used to configure the settings on the EC2 instance itself, once it's
@@ -86,23 +103,75 @@ containing both the server archive and all the server's periodic backups.
 * `server_file` - Name of the server archive containing the Minecraft server.
 More details on creating this archive are below.
 
+Update `ansible/files/prospector.cfg` with the same settings, as well as with
+the _world_name_ you'll be using.
+
 ==== Minecraft Server Archive
 
+You'll need to create a Minecraft server archive to be pulled onto your
+instance each time the box is spun up. In this example, I'll be creating an
+archive for my Feed the Beast server named `daftcyborg`.
 
+```
+$ # Create a base directory named after your server name
+$ mkdir daftcyborg
+$ cd daftcyborg
 
+$ # Get your base server pack. In my case, I've already downloaded the FTB server
+$ ls
+FTBRevelationServer_1.0.0.zip
+$ unzip FTBRevelationServer_1.0.0.zip
+
+$ # Install the server requirements
+$ sh ./FTBInstall.sh
+```
+
+Open the EULA, and agree (or don't) to the terms and conditions.
+
+Launch the server once, and wait for it to complete. This will generate the
+world base, and any settings and properties files necessary. Quit the server,
+and do the following as desired:
+
+* Remove the `world` directory, which is the world directory name used by
+default and which will (assuming you update the `server.properties` file) be
+named differently when your server is run.
+* Edit `server.properties` as desired. It is important that the _server-port_
+be left as _25565_, otherwise you'll need to adjust the Terraform
+configuration. Fields I recommend changing are _level-name_, _level-seed_, and
+_motd_.
+* Add yourself and any other players desired to _ops.json_.
+* Update _server-icon.png_ to a custom icon.
+
+Copy server.properties to `ansible/files/server.properties`, which Ansible will
+install every time over the top of the properties file in the archive, allowing
+easy configuration changes.
+
+Now, clean up your leftover base archive, since you don't need it anymore:
+
+```
+$ rm FTBRevelationServer_1.0.0.zip
+```
+
+Navigate up a level, and create a gzipped tarball with the same name as the
+`server_file` name in `ansible/group_vars/all`:
+
+```
+$ cd ..
+$ tar -cvzf daftcyborg-server-12-20-2017.tgz daftcyborg/
+```
+
+Lastly, push the archive to S3:
+
+```
+$ # The parameterized command is 'aws s3 cp <server_file> s3://<bucket_name>/<server_name>/'
+$ # My version looks like:
+$ aws s3 cp daftcyborg-server-12-20-2017.tgz s3://josh-minecraft/daftcyborg/
+```
 
 === Execution
 
-Configure any other variables as you'd like.
+==== 
 
-
-Then, from the root directory of your cloned git directory run:
-
-```
-./terraform apply terraform/
-```
-
-NOTE: Tested and built with Terraform v0.10.2.
 
 Once your spot instance is up and running, you can provision and deploy via
 ansible. Edit `ansible/group_vars/all` with your settings, in particular:
@@ -121,3 +190,8 @@ ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh minecraft.y
 
 A couple notes: on my setup, the paramiko library they used ran into errors
 when attempting to gather facts from the server, so I use `-c ssh` instead.
+
+== TODO
+
+Currently uses an auto-scaling group, rather than a launch configuration. I'd
+like to port it over to use the newer launch configurations instead.
