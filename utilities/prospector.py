@@ -39,10 +39,11 @@ class Prospector(object):
     Deals with world backup, archival and retrieval from S3.
     """
 
-    def __init__(self, s3_bucket, server_name, server_root_dir, world_name):
+    def __init__(self, server_name, world_name, server_root_dir, s3_bucket, per_world_backups):
         self.server_name = server_name
         self.world_name = world_name
         self.server_root_dir = server_root_dir
+        self.per_world_backups = per_world_backups
 
         self.s3_bucket = s3_bucket
         self.client = boto3.client('s3')
@@ -202,10 +203,13 @@ class Prospector(object):
 
     @property
     def _backup_path(self):
-        return os.path.join(self.server_root_dir,
+        path = os.path.join(self.server_root_dir,
                             self.server_name,
-                            'backups',
-                            self.world_name)
+                            'backups')
+        if self.per_world_backups:
+            path = os.path.join(path, self.world_name)
+
+        return path
 
 
 def main():
@@ -240,10 +244,15 @@ def main():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    p = Prospector(config.get('main', 's3_bucket'),
-                   config.get('main', 'server_name'),
-                   config.get('main', 'server_root_dir'),
-                   config.get('main', 'world_name'))
+    # Parse out interesting pairs into their proper types from the config file 
+    cfg = dict()
+    cfg['s3_bucket'] = config.get('main', 's3_bucket')
+    cfg['server_name'] = config.get('main', 'server_name')
+    cfg['server_root_dir'] = config.get('main', 'server_root_dir')
+    cfg['world_name'] = config.get('main', 'world_name')
+    cfg['per_world_backups'] = config.getboolean('main', 'per_world_backups')
+
+    p = Prospector(**cfg)
 
     if args.action == FETCH:
         p.fetch_most_recent_backup()
