@@ -1,7 +1,9 @@
+Mining Camp
+===========
+:toc:
+
 Easy automated configuration and deployment of Minecraft servers on AWS spot
 instances.
-
-:toc:
 
 == Setup
 
