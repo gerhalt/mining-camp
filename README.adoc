@@ -1,7 +1,29 @@
-Automated deployment of Minecraft servers on AWS spot instances.
+Easy automated configuration and deployment of Minecraft servers on AWS spot
+instances.
 
-Quick Guide
------------
+:toc:
+
+== Setup
+
+Start by checking out this repository, and navigating to your checkout-out
+directory. All sample commands provided are from the root directory unless
+otherwise noted.
+
+=== Requirements
+
+You'll need to download and install the following requirements (versions I
+build and tested with are in parenthesis):
+
+* `pip` (v9.0.1)
+* `terraform` (0.10.2)
+
+You'll also need a fully configured AWS developer account, with an access key
+and secret pair. You'll need to configure those on your system in the following
+step, if you haven't already.
+
+=== Configuration
+
+==== AWS Credentials
 
 You'll need your AWS credentials available for most of these operations, under
 the `minecraft` profile. `~/.aws/credentials` will look like:
@@ -12,8 +34,9 @@ aws_access_key_id = <your_access_key_here>
 aws_secret_access_key = <your_secret_key_here>
 ```
 
-Check out this repository, and `cd` into it. Install the requirements (using a
-virtual environment is highly recommended) using pip.
+==== Virtual Environment & Requirements
+
+Using pip, install the necessary Python requirements:
 
 ```
 $ mkvirtualenv minecraft
@@ -21,8 +44,11 @@ $ mkvirtualenv minecraft
 ```
 
 Configuring AWS is easy. Download and install terraform (I've renamed it to
-`terraform` in this example, and edit `terraform/variables.tf`. Then, from the
-root directory of your cloned git directory run:
+`terraform` in this example, and edit `terraform/variables.tf` and replace
+_bucket_name_ with the name of the S3 bucket you'll be using. Look through and
+adjust any other settings you'd like.
+
+Then, from the root directory of your cloned git directory run:
 
 ```
 ./terraform apply terraform/
@@ -31,7 +57,14 @@ root directory of your cloned git directory run:
 NOTE: Tested and built with Terraform v0.10.2.
 
 Once your spot instance is up and running, you can provision and deploy via
-ansible. Again, from the root project directory, run:
+ansible. Edit `ansible/group_vars/all` with your settings, in particular:
+
+* _minecraft_eip_alloc_id_ will need to be the ID of an elastic IP you've created manually.
+* _s3_bucket_ should match the name of the bucket set in the terraform config.
+* _server_name_ determines the name of the root directory in S3.
+* _server_file_ should be the full name 
+
+Then, from the root project directory, run:
 
 ```
 cd ansible
