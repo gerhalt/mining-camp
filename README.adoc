@@ -85,7 +85,9 @@ delete your EIPs and create new ones when you're ready to begin hosting again.
 
 ==== Virtual Environment & Requirements
 
-Using pip, install the necessary Python requirements:
+Using pip, install the necessary Python requirements. This installs Ansible,
+the AWS command-line interface, and libraries required for interacting with AWS
+programmatically.
 
 ```
 $ mkvirtualenv minecraft
