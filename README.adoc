@@ -32,6 +32,9 @@ step, if you haven't already.
 
 ==== AWS
 
+Most of the heavy lifting in AWS is done by terraform. However, a few steps
+need to be taken before using terraform.
+
 ===== Credentials
 
 You'll need your AWS credentials available for most of these operations, under
