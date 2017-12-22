@@ -168,7 +168,9 @@ $ # My version looks like:
 $ aws s3 cp daftcyborg-server-12-20-2017.tgz s3://josh-minecraft/daftcyborg/
 ```
 
-=== Execution
+== Instance Interactions
+
+=== Server Launch & Provision
 
 Up until now, everything in EC2 is created but no instances are running. To
 launch an instance, open `terraform/main.tf` and edit the _minecraft_
@@ -197,6 +199,21 @@ Sometimes the NVMe mount will succeed, but the subsequent folder creation will
 fail due to the mount not being available fast enough. If this occurs, simply
 re-run.
 
+=== Server Shutdown
+
+Reverting the change made when launching your server, edit `terraform/main.tf`
+and change `desired_capacity` from _1_ back to _0_. Applying your terraform
+changes will cause the instance to start shutting down, like:
+
+```
+./terraform apply terraform/
+```
+
+Now your instance is gone, but your most recent backups are present in S3,
+waiting for the next launch. Note that if you're planning on shutting it down
+permanently, you'll want to delete the elastic IP and any backups, or else
+you'll continue to incur AWS charges.
+
 == Troubleshooting
 
 If you want to connect to your instance directly, use the key-pair you set up
@@ -211,6 +228,22 @@ started in:
 
 ```
 tmux attach-session -t minecraft
+```
+
+== Testing
+
+Tests are currently available for the Prospector tool. You'll need to install
+the requirements in the test directory in order to run them. From the root,
+with your virtual environment active:
+
+```
+(minecraft) $ pip install -r utilities/tests/requirements.txt
+```
+
+Now you can launch the test suite:
+
+```
+(minecraft) $ python -m unittest -v utilities.tests.test_prospector
 ```
 
 == TODO
