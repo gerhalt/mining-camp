@@ -188,7 +188,7 @@ $ # My version looks like:
 $ aws s3 cp daftcyborg-server-12-20-2017.tgz s3://josh-minecraft/daftcyborg/
 ```
 
-== Instance Interactions
+== Spot Instance Interactions
 
 === Server Launch & Provision
 
@@ -250,7 +250,7 @@ started in:
 tmux attach-session -t minecraft
 ```
 
-== Testing
+== Tests
 
 Tests are currently available for the Prospector tool. You'll need to install
 the requirements in the test directory in order to run them. From the root,
