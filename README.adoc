@@ -1,6 +1,7 @@
 Mining Camp
 ===========
 :toc:
+:toclevels: 3
 
 Easy automated configuration and deployment of Minecraft servers on AWS spot
 instances.
@@ -30,6 +31,8 @@ step, if you haven't already.
 
 ==== AWS
 
+===== Credentials
+
 You'll need your AWS credentials available for most of these operations, under
 the `minecraft` profile. `~/.aws/credentials` will look like:
 
@@ -43,8 +46,24 @@ If you have more than one AWS profile, you'll need to set the `AWS_PROFILE`
 environment variable with `export AWS_PROFILE=minecraft` for the `aws` commands
 below to work.
 
-The one configuration piece in the AWS console that will need to be done by
-hand is creation of an elastic IP. In the AWS console, do the following:
+===== Key Pair
+
+You'll need a key pair for accessing your instance. Generate a public-private
+key pair. As an example, you can do this with `ssh-keygen`:
+
+```
+ssh-keygen -t rsa -b 4096 -C "AWS"
+```
+
+In the EC2 console, select _Import Key Pair_ on the
+_NETWORK & SECURITY -> Key Pairs_ page. Upload your public key, and name it
+"aws-public". The launch configuration Terraform creates includes this key,
+allowing SSH access to Ansible (and for troubleshooting!)
+
+===== Elastic IP Creation
+
+You'll need to create an elastic IP for association with your instance,
+providing a convenient public-facing IP. In the AWS console, do the following:
 
 1. Enter the EC2 service.
 2. Click on _Elastic IPs_, under the _NETWORK & SECURITY_ menu on the left-hand
