@@ -27,8 +27,15 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 # Constants
-AROMA_BACKUP_RE = re.compile('\w+-\w+-([\d-]+).zip')
-AROMA_BACKUP_DATE_FMT = '%Y-%m-%d--%H-%M'
+
+# a list of regexes matching file names, and the date format string that can
+# be matched against the first regex group.
+BACKUP_FORMATS = [
+    # Aroma backup format
+    (re.compile('\w+-\w+-(\d{4}-\d{2}-\d{2}--\d{2}-\d{2}).zip'), '%Y-%m-%d--%H-%M'),
+    # FTB Utilities backup format
+    (re.compile('(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).zip'), '%Y-%m-%d-%H-%M-%S')
+]
 
 S3_BACKUP_RE = re.compile('\w+-(\d{8}T\d{6}).zip')
 S3_BACKUP_DATE_FMT = '%Y%m%dT%H%M%S'
@@ -39,7 +46,7 @@ class Prospector(object):
     Deals with world backup, archival and retrieval from S3.
     """
 
-    def __init__(self, s3_bucket, server_name, server_root_dir, world_name):
+    def __init__(self, server_name, world_name, server_root_dir, s3_bucket):
         self.server_name = server_name
         self.world_name = world_name
         self.server_root_dir = server_root_dir
@@ -93,14 +100,28 @@ class Prospector(object):
 
             latest_path = None
             latest_stamp = None
-            for root, dirs, files in os.walk(self._backup_path):
+            for root, dirs, files in os.walk(self.local_backup_path):
+                # Look into the <world_name> subdirectory for backups too, if
+                # such a directory exists. Do this by editing the list of
+                # directories in-place.
+                if self.world_name in dirs and root == self.local_backup_path:
+                    for i, d in reversed(list(enumerate(dirs))):
+                        if d != self.world_name:
+                            del dirs[i]
+
                 # Check each file to determine whether it matches our Aroma backup
                 # naming convention.
                 for f in files:
-                    result = AROMA_BACKUP_RE.match(f)
+                    # Check the filename against our known backup formats
+                    result = None
+                    for file_re, date_fmt in BACKUP_FORMATS:
+                        result = file_re.match(f)
+                        if result:
+                            break
+
                     if result:
                         backup_time = datetime.strptime(result.group(1),
-                                                        AROMA_BACKUP_DATE_FMT)
+                                                        date_fmt)
                         if not latest_stamp or latest_stamp < backup_time:
                             latest_stamp = backup_time
                             latest_path = os.path.join(root, f)
@@ -123,18 +144,18 @@ class Prospector(object):
                                                 S3_BACKUP_DATE_FMT)
 
         if zipfile or not latest_s3_stamp or latest_stamp > latest_s3_stamp:
-            new_s3_key = self._s3_backup_key(latest_stamp)
+            new_s3_key = self.s3_backup_key(latest_stamp)
             logger.info("Uploading backup file {} to s3://{}/{}".format(latest_path,
                                                                         self.s3_bucket,
                                                                         new_s3_key))
 
             self.client.upload_file(latest_path, self.s3_bucket, new_s3_key)
-            self._tag_s3_object(new_s3_key, backup='new')
+            self.tag_s3_object(new_s3_key, backup='new')
 
             if latest_s3_stamp:
                 # If we found an older backup, retag it since it's no longer
                 # current
-                self._tag_s3_object(latest_s3_key, backup='old')
+                self.tag_s3_object(latest_s3_key, backup='old')
 
 
     def push_current_backup(self):
@@ -142,7 +163,7 @@ class Prospector(object):
         Builds a backup archive from the server's active world and pushes it to
         S3. The server should not be running while this is executing.
         """
-        key = self._s3_backup_key(datetime.now())
+        key = self.s3_backup_key(datetime.now())
         tmp_path = os.path.join('/tmp', os.path.basename(key))
         logger.info("Archiving backup of current state of '{}' world to {}".format(self.world_name,
                                                                                    tmp_path))
@@ -163,7 +184,7 @@ class Prospector(object):
         """
         # We have to sort the results ourselves
         obj_list = self.client.list_objects(Bucket=self.s3_bucket,
-                                            Prefix=self._s3_backup_prefix)
+                                            Prefix=self.s3_backup_prefix)
         backups = [o['Key'] for o in obj_list.get('Contents', [])]
         backups.sort(reverse=True)
 
@@ -175,7 +196,7 @@ class Prospector(object):
         return None
 
 
-    def _tag_s3_object(self, key, **kwargs):
+    def tag_s3_object(self, key, **kwargs):
         """
         Tag an s3 object identified by `key` with the key-value pairs in
         `kwargs`.
@@ -188,24 +209,23 @@ class Prospector(object):
         )
 
 
-    def _s3_backup_key(self, date):
+    def s3_backup_key(self, date):
         """
         Given a `date` datetime instance, returns an s3 key for that backup,
         including the .zip suffix.
         """
-        return '{}-{}.zip'.format(self._s3_backup_prefix,
+        return '{}-{}.zip'.format(self.s3_backup_prefix,
                                   date.strftime(S3_BACKUP_DATE_FMT))
 
     @property
-    def _s3_backup_prefix(self):
+    def s3_backup_prefix(self):
         return '{}/backups/{}'.format(self.server_name, self.world_name)
 
     @property
-    def _backup_path(self):
+    def local_backup_path(self):
         return os.path.join(self.server_root_dir,
                             self.server_name,
-                            'backups',
-                            self.world_name)
+                            'backups')
 
 
 def main():
@@ -240,10 +260,14 @@ def main():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    p = Prospector(config.get('main', 's3_bucket'),
-                   config.get('main', 'server_name'),
-                   config.get('main', 'server_root_dir'),
-                   config.get('main', 'world_name'))
+    # Parse out interesting pairs into their proper types from the config file
+    cfg = dict()
+    cfg['s3_bucket'] = config.get('main', 's3_bucket')
+    cfg['server_name'] = config.get('main', 'server_name')
+    cfg['server_root_dir'] = config.get('main', 'server_root_dir')
+    cfg['world_name'] = config.get('main', 'world_name')
+
+    p = Prospector(**cfg)
 
     if args.action == FETCH:
         p.fetch_most_recent_backup()
