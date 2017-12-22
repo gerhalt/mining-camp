@@ -24,9 +24,8 @@ build and tested with are in parenthesis):
 You'll need an appropriate version of the JDK/JVM to run the server locally at
 least once, allowing it to generate the necessary configuration files.
 
-You'll also need a fully configured AWS developer account, with an access key
-and secret pair. You'll need to configure those on your system in the following
-step, if you haven't already.
+You'll also need a fully configured AWS developer account, as you'll be using
+the console extensively in the next step.
 
 === Configuration
 
