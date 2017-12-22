@@ -265,7 +265,7 @@ Now you can launch the test suite:
 (minecraft) $ python -m unittest -v utilities.tests.test_prospector
 ```
 
-== TODO
+== Todo
 
 Currently uses an auto-scaling group, rather than a launch configuration. I'd
 like to port it over to use the newer launch configurations instead.
