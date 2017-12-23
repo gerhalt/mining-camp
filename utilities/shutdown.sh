@@ -72,7 +72,7 @@ while [ true ]; do
         # Shut the server down, and wait for it to exit
         minecraft_cmd "stop"
         pid=`pgrep -f ServerStart.sh`
-        while ps -p $pid; do
+        while ps -p $pid > /dev/null; do
             sleep 1
         done
 
