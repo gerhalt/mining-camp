@@ -274,8 +274,3 @@ Now you can launch the test suite:
 
 Currently uses an auto-scaling group, rather than a launch configuration. I'd
 like to port it over to use the newer launch configurations instead.
-
-Doesn't deal with spot instance forced termination elegantly. The shutdown
-endpoint needs to be monitored by a cron job, which can then notify players on
-the server. Once it's down that, it can shut down the server, perform an
-immediate backup, and push that backup to S3.

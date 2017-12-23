@@ -2,7 +2,7 @@
 #
 # Bootstraps the minecraft server into a tmux session for easy access
 #
-# ./bootstrap server_path
+# ./bootstrap.sh server_path
 
 if [ $# -eq 0 ]; then
     echo "First parameter should be the minecraft server root directory"

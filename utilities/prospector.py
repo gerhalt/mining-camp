@@ -109,8 +109,8 @@ class Prospector(object):
                         if d != self.world_name:
                             del dirs[i]
 
-                # Check each file to determine whether it matches our Aroma backup
-                # naming convention.
+                # Check each file to determine whether it matches one of our
+                # known backup formats.
                 for f in files:
                     # Check the filename against our known backup formats
                     result = None
@@ -170,7 +170,8 @@ class Prospector(object):
 
         # Strip the suffix off tmp_path, because `shutil.make_archive` adds its
         # own when it creates the file.
-        shutil.make_archive(tmp_path[:-4], 'zip', '/minecraft', self.world_name)
+        base_path = os.path.join(self.server_root_dir, self.server_name)
+        shutil.make_archive(tmp_path[:-4], 'zip', base_path, self.world_name)
 
         # Create a key for the archive in S3 and upload it
         self.push_most_recent_backup(zipfile=tmp_path)
@@ -235,9 +236,10 @@ def main():
         description="Utilities for interacting with an S3 bucket storing " \
                     "Minecraft servers and backups.")
     parser.add_argument('action', choices=(FETCH, BACKUP, BACKUP_CURRENT),
-        help="The action to take: fetch a backup from S3 and install it, " \
-             "backup the most recent Aroma backup to S3, or back up the " \
-             "current server state to S3 (server should be off).")
+        help="The action to take: 'fetch' gets the most recent backup from " \
+             "S3 and installs it, 'backup' pushes the most recent backup to " \
+             "S3, and 'backup_current' creates a fresh backup from the " \
+             "current world directory and pushes it (server should be off).")
     parser.add_argument('--cfg', nargs=1, default=['/minecraft/prospector.cfg'],
         help="Config file to read settings from.")
     parser.add_argument('--log', nargs=1, default=['/minecraft/prospector.log'],
