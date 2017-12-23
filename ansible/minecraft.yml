@@ -22,6 +22,7 @@
     - awscli
     - openjdk-8-jre-headless
     - python-pip
+    - jq
 
   - name: "Create minecraft root directory"
     become: true
