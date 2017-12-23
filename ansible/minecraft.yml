@@ -79,8 +79,10 @@
       job: "/minecraft/mining-camp/utilities/prospector.py backup"
 
   - name: "Start emergency shutdown monitoring script in the background"
+    # In order to run a background process, we detach inputs and outputs and
+    # use nohup
     shell: |
-      /minecraft/mining-camp/utilities/shutdown.sh /minecraft/{{server_name}} &
+      nohup /minecraft/mining-camp/utilities/shutdown.sh /minecraft/{{server_name}} </dev/null >/dev/null 2>&1 &
 
   - name: "Fetch most recent backup from S3 and install it"
     shell: |
