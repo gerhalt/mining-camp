@@ -207,7 +207,8 @@ cd ansible
 ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh start.yml
 ```
 
-The `ec2.py` inventory file should automatically pick up your new instance.
+You may be prompted when attempting to connect to your host. If you'd like to
+skip this check, set `ANSIBLE_HOST_KEY_CHECKING=false` for these commands.
 
 NOTE: On my setup, the Paramiko library Ansible uses by default ran into errors
 when attempting to gather facts from the server, so I had to use `-c ssh`
