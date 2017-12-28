@@ -1,16 +1,30 @@
+- name: "Set ASG size to 1"
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - ec2_asg:
+      name: "minecraft"
+      desired_capacity: 1
+      region: "{{aws_region}}"
+
+  # Since the above task changes the host set, refresh the inventory before
+  # continuing
+  - meta: refresh_inventory
+
+# Fact gathering doesn't work if Python isn't available on the hosts, so we do
+# this and the prior task first
 - name: "Pre-fact-gathering Setup"
   hosts: all
   gather_facts: false
 
   tasks:
-  - name: "Install Python (required for fact gathering)"
+  - name: "Install Python on hosts"
     become: true
     raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
 
-- name: "Installation"
+- name: "Installation & Launch"
   hosts: all
-  tags:
-  - deploy
 
   tasks:
   - name: "Install prerequisites"
@@ -32,13 +46,14 @@
       group: ubuntu
       state: directory
 
+  # Not portable
   - name: "Mount NVMe device to minecraft directory"
     become: true
     become_user: root
     shell: |
         mkfs.ext4 /dev/nvme0n1
         mount -t ext4 /dev/nvme0n1 /minecraft
-    ignore_errors: true
+        chown ubuntu:ubuntu /minecraft
 
   - name: "Clone git repo into minecraft directory"
     git:
@@ -80,9 +95,9 @@
 
   - name: "Start emergency shutdown monitoring script in the background"
     # In order to run a background process, we detach inputs and outputs and
-    # use nohup
+    # use nohup. This runs shutdown.sh in its daemon mode.
     shell: |
-      nohup /minecraft/mining-camp/utilities/shutdown.sh /minecraft/{{server_name}} </dev/null >/dev/null 2>&1 &
+      nohup /minecraft/mining-camp/utilities/shutdown.sh /minecraft </dev/null >/dev/null 2>&1 &
 
   - name: "Fetch most recent backup from S3 and install it"
     shell: |
@@ -94,3 +109,4 @@
 
   - name: "Assign elastic ip"
     local_action: shell aws ec2 associate-address --region {{aws_region}} --instance-id {{ec2_id}} --allocation-id {{minecraft_eip_alloc_id}}
+    ignore_errors: true

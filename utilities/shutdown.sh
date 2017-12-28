@@ -1,20 +1,32 @@
 #!/bin/bash
 #
-# ./shutdown.sh server_path
+# ./shutdown.sh minecraft_root
+#
+# `minecraft_root` should be the base directory everything minecraft-related is
+# installed to, usually /minecraft. This script can be run in two different
+# modes, depending on whether it is backgrounded (&) or not.
+#
+# "Daemon" Mode
 #
 # Every 5 seconds, checks whether the instance is going to be shut down or
-# terminated soon. If the instance is to be stopped or terminated, does the
-# following:
+# terminated soon. If the instance is to be stopped or terminated, performs the
+# same steps as Active mode.
 #
-# 1. Notifies players via a server broadcast.
+# "Active" Mode
+#
+# Immediately does the following
+#
+# 1. Notifies players via a server broadcast that the server will be shut down
+#    after a brief delay.
 # 2. Shuts the server down.
 # 3. Runs a backup on the server world and pushes it to S3.
+#
 #
 # NOTE: This assumes that the "minecraft" tmux session is available and the
 # first pane is the one the minecraft server and console is running in.
 
 # Deal with script arguments
-SERVER_ROOT=${1:-/minecraft}
+MINECRAFT_ROOT=${1:-/minecraft}
 
 TMUX_SESSION=minecraft
 TMUX_PANE=${TMUX_SESSION}:0.0
@@ -45,42 +57,74 @@ minecraft_msg () {
     minecraft_cmd "/tellraw @a {\"text\": \"$action\", \"color\": \"$color\"}"
 }
 
+# shutdown_server
+#
+# Sends a shutdown command to the tmux pane the server in running in, then
+# waits for it to exit.
+shutdown_server () {
+    minecraft_cmd "stop"
+    pid=`pgrep -f ServerStart.sh`
+    while ps -p $pid > /dev/null; do
+        sleep 1
+    done
+}
 
-while [ true ]; do
-    # This fetches only the headers, mutes all of curl's output, and prints
-    # only the HTTP status code returned. If this code is anything other than a
-    # 404, investigate further.
-    status_code=`curl -I -s -o /dev/null -w '%{http_code}' http://169.254.169.254/latest/meta-data/spot/instance-action`
 
-    if [ "$status_code" != "404" ]; then
-        # Determine what action is being taken on the instance
-        # See http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-interruptions.html
-        # for more details on this.
-        resp=`curl http://169.254.169.254/latest/meta-data/spot/instance-action`
-        # resp='{"action": "stop", "time": "2017-09-18T08:22:00Z"}'
+# Check if the script is running in the foreground or in the background.
+# - Background: Run in daemon mode, checking for emergency shutdown action
+#     every few seconds.
+# - Foreground: Run in active mode, immediately shutting down and backing up
+#     the server.
 
-        # Parse the action and the time out of the message
-        action=`echo $resp | jq -r '.action'`
-        time=`echo $resp | jq -r '.time'`
+# "+" in the ps output indicates the process is running in the foreground
+mypid=$$
+if [[ "$(ps -o stat= -p $mypid)" =~ \+ ]]; then
+    # Foreground, script mode
+    echo "Notifying users"
+    minecraft_msg "[AWS] Warning! Server is shutting down!" "red"
+    minecraft_msg "[AWS] Server going down in $DELAY seconds!" "red"
 
-        minecraft_msg "[AWS] Warning! Spot instance terminating!" "red"
-        minecraft_msg "[AWS] Server going down in $DELAY seconds!" "red"
+    # Brief delay, allowing players to finish up before shutting down
+    echo "Shutting down server in $DELAY seconds"
+    sleep $DELAY
+    shutdown_server
 
-        # Brief delay, allowing players to finish up before shutting down
-        sleep $DELAY
+    echo "Creating and pushing backup to S3"
+    $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup_current
+else
+    # Background, daemon mode
+    echo "Running in background mode!"
 
-        # Shut the server down, and wait for it to exit
-        minecraft_cmd "stop"
-        pid=`pgrep -f ServerStart.sh`
-        while ps -p $pid > /dev/null; do
-            sleep 1
-        done
+    while [ true ]; do
+        # This fetches only the headers, mutes all of curl's output, and prints
+        # only the HTTP status code returned. If this code is anything other than a
+        # 404, investigate further.
+        status_code=`curl -I -s -o /dev/null -w '%{http_code}' http://169.254.169.254/latest/meta-data/spot/instance-action`
 
-        # Create and push a backup to S3
-        $SERVER_ROOT/mining-camp/utilities/prospector.py backup_current
+        if [ "$status_code" != "404" ]; then
+            # Determine what action is being taken on the instance
+            # See http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-interruptions.html
+            # for more details on this.
+            resp=`curl http://169.254.169.254/latest/meta-data/spot/instance-action`
+            # resp='{"action": "stop", "time": "2017-09-18T08:22:00Z"}'
 
-        break
-    fi
+            # Parse the action and the time out of the message
+            action=`echo $resp | jq -r '.action'`
+            time=`echo $resp | jq -r '.time'`
 
-    sleep 5
-done
+            minecraft_msg "[AWS] Warning! Spot instance terminating!" "red"
+            minecraft_msg "[AWS] Server going down in $DELAY seconds!" "red"
+
+            # Brief delay, allowing players to finish up before shutting down
+            sleep $DELAY
+            shutdown_server
+
+            # Create and push a backup to S3
+            $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup_current
+
+            break
+        fi
+
+        sleep 5
+    done
+fi
