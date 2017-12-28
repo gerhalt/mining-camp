@@ -108,8 +108,7 @@ Then, from the root directory of your modified `mining-camp` checkout run:
 ```
 
 Once this has successfully completed, your AWS configuration is complete.
-Unless you change terraform settings or need to shutdown your server you won't
-need to run this again.
+Unless you change your AWS configuration, you won't need to run this again.
 
 ==== Ansible
 
@@ -129,6 +128,10 @@ More details on creating this archive are below.
 
 Update `ansible/files/prospector.cfg` with the same settings, as well as with
 the _world_name_ you'll be using.
+
+Lastly, update `ansible/ec2.ini`'s `regions` entry with the AWS region you're
+using. You can set this to _all_, but the dynamic EC2 entry script will take
+longer.
 
 ==== Minecraft Server Archive
 
@@ -196,63 +199,32 @@ $ aws s3 cp daftcyborg-server-12-20-2017.tgz s3://josh-minecraft/daftcyborg/
 
 === Server Launch & Provision
 
-Up until now, everything in EC2 is created but no instances are running. To
-launch an instance, open `terraform/main.tf` and edit the _minecraft_
-`aws_autoscaling_group`'s `desired_capacity` from _0_ to _1_. Then re-run
-terraform, like:
-
-```
-./terraform apply terraform/
-```
-
-Now you have an instance running, but it hasn't been set up to run our server.
 Jump to the `ansible` directory, and run the playbook to configure the instance
 and launch the minecraft server:
 
 ```
 cd ansible
-ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh minecraft.yml
+ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh start.yml
 ```
 
-The `ec2.py` inventory file should automatically pick up your new instance
-after one or two attempts. On my setup, the Paramiko Python library Ansible
-uses by default ran into errors when attempting to gather facts from the server,
-so I use `-c ssh` instead.
+The `ec2.py` inventory file should automatically pick up your new instance.
 
-Sometimes the NVMe mount will succeed, but the subsequent folder creation will
-fail due to the mount not being available fast enough. If this occurs, simply
-re-run.
+NOTE: On my setup, the Paramiko library Ansible uses by default ran into errors
+when attempting to gather facts from the server, so I had to use `-c ssh`
+instead.
 
 === Server Shutdown
 
-Reverting the change made when launching your server, edit `terraform/main.tf`
-and change `desired_capacity` from _1_ back to _0_. Applying your terraform
-changes will cause the instance to start shutting down, like:
+Shutting down your server is just as easy as starting it:
 
 ```
-./terraform apply terraform/
+cd ansible
+ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh stop.yml
 ```
 
-Now your instance is gone, but your most recent backups are present in S3,
-waiting for the next launch. Note that if you're planning on shutting it down
-permanently, you'll want to delete the elastic IP and any backups, or else
-you'll continue to incur AWS charges.
-
-== Troubleshooting
-
-If you want to connect to your instance directly, use the key-pair you set up
-initially to SSH into the instance:
-
-```
-ssh -i ~/.ssh/aws ubuntu@<elastic_ip>
-```
-
-Once you're on the box, you can attach to the tmux session the server has been
-started in:
-
-```
-tmux attach-session -t minecraft
-```
+When this playbook finishes, your instance will be gone, but the state of the
+server will have been preserved and pushed to S3, ready for the next time you
+launch it.
 
 == Tests
 
@@ -274,3 +246,6 @@ Now you can launch the test suite:
 
 Currently uses an auto-scaling group, rather than a launch configuration. I'd
 like to port it over to use the newer launch configurations instead.
+
+Create a configuration script that can take user input and populate the
+configuration files as needed. This would make this so painless!

@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-# ./shutdown.sh server_path
+# ./shutdown.sh minecraft_root
 #
-# If the script is run in the background (&), runs in Daemon mode, otherwise
-# runs in Active mode.
+# `minecraft_root` should be the base directory everything minecraft-related is
+# installed to, usually /minecraft. This script can be run in two different
+# modes, depending on whether it is backgrounded (&) or not.
 #
 # "Daemon" Mode
 #
@@ -25,7 +26,7 @@
 # first pane is the one the minecraft server and console is running in.
 
 # Deal with script arguments
-SERVER_ROOT=${1:-/minecraft}
+MINECRAFT_ROOT=${1:-/minecraft}
 
 TMUX_SESSION=minecraft
 TMUX_PANE=${TMUX_SESSION}:0.0
@@ -89,7 +90,7 @@ if [[ "$(ps -o stat= -p $mypid)" =~ \+ ]]; then
     shutdown_server
 
     echo "Creating and pushing backup to S3"
-    $SERVER_ROOT/mining-camp/utilities/prospector.py backup_current
+    $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup_current
 else
     # Background, daemon mode
     echo "Running in background mode!"
@@ -119,7 +120,7 @@ else
             shutdown_server
 
             # Create and push a backup to S3
-            $SERVER_ROOT/mining-camp/utilities/prospector.py backup_current
+            $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup_current
 
             break
         fi

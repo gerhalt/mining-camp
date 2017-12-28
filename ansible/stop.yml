@@ -1,0 +1,19 @@
+# Ansible playbook for shutting down minecraft server and terminating the spot
+# instance.
+
+- name: "Shutdown"
+  hosts: all
+
+  tasks:
+  - name: "Shutdown server and push backup to S3"
+    shell: |
+        /minecraft/mining-camp/utilities/shutdown.sh /minecraft
+
+- name: "Set ASG size to 0"
+  hosts: localhost
+
+  tasks:
+  - ec2_asg:
+      name: "minecraft"
+      desired_capacity: 0
+      region: "{{aws_region}}"
