@@ -4,6 +4,8 @@ Mining Camp
 :toc-placement: preamble
 :toclevels: 3
 
+image::https://i.imgur.com/jvJzU6v.png[Mining Camp]
+
 Easy automated configuration and deployment of Minecraft servers on AWS spot
 instances, featuring automatic backups and restoration using S3.
 
