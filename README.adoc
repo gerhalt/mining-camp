@@ -76,7 +76,7 @@ your bill and be aware of where you're incurring charges.
 
 Start by checking out this repository, and navigating to your checkout-out
 directory. Sample bash commands provided are from the root directory unless
-otherwise noted and .
+otherwise noted.
 
 === Requirements
 
@@ -314,6 +314,10 @@ Now you can launch the test suite:
 
 Currently uses an auto-scaling group, rather than a launch configuration. I'd
 like to port it over to use the newer launch configurations instead.
+
+Support instance types other than i3. It's pretty easy, but right now the
+playbook for launching the server attempts to mount the NVMe drive to
+`/minecraft`, but that storage configuration is unique to i3 instance types.
 
 Create a configuration script that can take user input and populate the
 configuration files as needed. This would make this so painless!
