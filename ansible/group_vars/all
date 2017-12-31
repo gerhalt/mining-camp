@@ -1,5 +1,7 @@
+# TODO: Duplicated from Terraform
 aws_profile: minecraft
 aws_region: us-east-1
+aws_instance_type: i3.large
 
 # Set the elastic IP you'd always like associated with your instance here
 minecraft_eip_alloc_id: eipalloc-06237b35

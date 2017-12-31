@@ -19,5 +19,10 @@ variable "aws_region" {
 
 variable "aws_availability_zone" {
   description = "AWS availability zone to launch servers in."
-  default     = "us-east-1d"
+  default     = "us-east-1f"
+}
+
+variable "aws_instance_type" {
+  description = "Spot instance type to launch."
+  default     = "i3.large"
 }

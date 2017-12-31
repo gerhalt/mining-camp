@@ -27,6 +27,11 @@
   hosts: all
 
   tasks:
+  - name: "Derive instance category and size from name"
+    set_fact:
+      aws_instance_category: "{{ aws_instance_type.split('.')[0] }}"
+      aws_instance_size: "{{ aws_instance_type.split('.')[1] }}"
+
   - name: "Install prerequisites"
     become: true
     apt:
@@ -46,8 +51,9 @@
       group: ubuntu
       state: directory
 
-  # Not portable
+  # Device mounting tasks, depending on the instance category
   - name: "Mount NVMe device to minecraft directory"
+    when: aws_instance_category == "i3"
     become: true
     become_user: root
     shell: |

@@ -105,7 +105,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_launch_configuration" "minecraft" {
   name              = "minecraft"
   image_id          = "${data.aws_ami.ubuntu.id}"
-  instance_type     = "i3.large"
+  instance_type     = "${var.aws_instance_type}"
   spot_price        = "${var.max_spot_price}"
   ebs_optimized     = false
   enable_monitoring = false

@@ -38,13 +38,19 @@ instances result in excellent uptime.
 * Requires initial work to setup. This isn't a push-button solution, but once
 you're done with the setup day-to-day interactions are extremely easy.
 
-=== Sample Cost Breakdown
+=== Sample Cost Breakdowns
 
-Your needs will almost certainly differ, so cross-referencing
-https://aws.amazon.com/ec2/spot/pricing/[spot instance pricing] with the
-https://aws.amazon.com/ec2/instance-types/[EC2 instance types] is helpful.
-All calculations here are based on an instance in `us-east-1`, and assume a
+I've provided a couple samples of pricing based on different instance types
+below. When deciding what to use, cross reference your requirements against
+the https://aws.amazon.com/ec2/spot/pricing/[spot instance pricing] and the
+https://aws.amazon.com/ec2/instance-types/[EC2 instance types]. Be aware that
+spot instance prices can differ not only between AWS regions, but between
+availability zones as well.
+
+All calculations below are based on an instance in `us-east-1`, and assume a
 31-day month.
+
+==== i3.large
 
 I'm using an i3.large, which has a ~16GB of RAM and a 500GB NVMe drive,
 which means I don't have to pay for an additional EBS volume on top of the
@@ -71,6 +77,17 @@ preserving backups is only *$0.46*, which is very reasonable.
 
 NOTE: AWS charges for absolutely everything. It's critical that you monitor
 your bill and be aware of where you're incurring charges.
+
+==== t2.medium
+
+Options with less RAM more be suited to smaller loads. One example is a
+_t2.medium_, which has only 4GB of RAM and no SSD, which means it requires an
+EBS volume. The upside is that it only costs $0.0134 an hour. If we use a 30GB
+ephemeral EBS volume that's deleted on instance termination, that adds roughly
+$0.0004 an hour.
+
+Using this less powerful, less expensive instance brings considerable savings:
+*$0.0255* an hour, or *$18.97* when run for an entire month.
 
 == Setup
 
@@ -163,19 +180,21 @@ $ mkvirtualenv minecraft
 ==== Terraform
 
 Terraform allows you to easily setup EC2 and S3 to match your needs. You'll
-need to do some minor configuration in `terraform/variables.tf`. The only
-setting that absolutely needs to be changed is the `bucket_name`, which should
-match the name of the S3 bucket you'll be using. You'll also need to update the
-`aws_region`, if you're not running in the default region ('us-east-1').
+need to do some minor configuration in `terraform/variables.tf`. Update the
+`bucket_name`, `aws_region`, `aws_availability_zone`, and `aws_instance_type`
+as desired.
 
-Then, from the root directory of your modified `mining-camp` checkout run:
+NOTE: It's important you choose the right _aws_availability_zone_, since spot
+prices can vary substantially from zone to zone.
+
+Once you're satisfied, apply the configuration:
 
 ```
 ./terraform apply terraform/
 ```
 
 Once this has successfully completed, your AWS configuration is complete.
-Unless you change your AWS configuration, you won't need to run this again.
+Unless you change your configuration, you won't need to run this again.
 
 ==== Ansible
 
@@ -186,6 +205,8 @@ the following:
 * `aws_region` - Only if using a region other than the default ('us-east-1').
 * `minecraft_eip_alloc_id` - Use the allocation ID of the elastic IP you
 created above, like 'eipalloc-06237b35'.
+* `aws_instance_type` - The instance type desired, such as _i3.large_. This
+should match the instance type in your Terraform config.
 * `s3_bucket` - The name of the bucket you'll be using. Should match the bucket
 name you set in the Terraform config.
 * `server_name` - Each server has its own directory in your S3 bucket,
@@ -321,3 +342,7 @@ playbook for launching the server attempts to mount the NVMe drive to
 
 Create a configuration script that can take user input and populate the
 configuration files as needed. This would make this so painless!
+
+Add dynamic terraform variable support, so Ansible can pull the AWS
+configuration from Terraform's state instead of having information not only
+duplicated but potentially not up to date as well.
