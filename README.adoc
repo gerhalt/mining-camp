@@ -5,13 +5,95 @@ Mining Camp
 :toclevels: 3
 
 Easy automated configuration and deployment of Minecraft servers on AWS spot
-instances, featuring automatic backups and restoration using S3.
+instances, with features such as instance shutdown monitoring and automatic
+backups and restorations using S3.
+
+image::https://i.imgur.com/jvJzU6v.png[Mining Camp]
+
+== Introduction
+
+Amazon sells spare EC2 instances that aren't currently reserved, called "spot
+instances", for a fraction of the cost of a reserving them. If you can mitigate
+their volatility risk, they're an excellent deal and powerful enough to host
+demanding game servers.
+
+_Advantages:_
+
+* More control over everything. SSH into the box, troubleshoot, adjust anything
+you like on the fly.
+* Better bang for your buck. More powerful systems than most hosting services
+offer.
+* Pay for exactly what you use. Spot instances are billed by the second, so if
+your server isn't going to be used for a few days, or even overnight, just turn
+it off.
+* Linux-based. This might be a disadvantage, depending on your comfort level.
+Windows instances are not only more of a pain, they're also far more expensive.
+* Works with any AWS region, so you can minimize latency for your player base.
+
+_Disadvantages:_
+
+* Spot instances can be terminated at any time. This is mitigated by both the
+emergency shutdown monitoring script, but in practice reasonable bids for spot
+instances result in excellent uptime.
+* Requires initial work to setup. This isn't a push-button solution, but once
+you're done with the setup day-to-day interactions are extremely easy.
+
+=== Sample Cost Breakdowns
+
+I've provided a couple samples of pricing based on different instance types
+below. When deciding what to use, cross reference your requirements against
+the https://aws.amazon.com/ec2/spot/pricing/[spot instance pricing] and the
+https://aws.amazon.com/ec2/instance-types/[EC2 instance types]. Be aware that
+spot instance prices can differ not only between AWS regions, but between
+availability zones as well.
+
+All calculations below are based on an instance in `us-east-1`, and assume a
+31-day month.
+
+NOTE: AWS charges for absolutely everything. It's critical that you monitor
+your bill and be aware of where you're incurring charges.
+
+==== i3.large
+
+An _i3.large_ is a quite powerful instance with ~16GB of RAM and a 500GB NVMe
+drive, meaning an EBS (beyond the 8GB root volume) isn't required. Price
+estimates for the various moving pieces:
+
+* Current spot instance price for an _i3.large_ is $0.0371 per hour at present.
+* An 8GB EBS is used as the root volume for the instance, at $0.10 per
+    GB-month, or roughly $0.00013 an hour. This is deleted on instance shutdown,
+    so no charges are incurred when the server is off.
+* Elastic IPs are free when assigned to a running instance, and $0.005 per hour
+    when unassigned.
+* AWS data transfer is pretty expensive, at $0.09 per GB. I use about 1.4GB per
+    day, but my server has a lot of time when it's completely idle. For the
+    sake of round numbers, 2GB of bandwidth a day winds up being $0.0075 an
+    hour. This cost is very subjective.
+* S3 is actually quite cheap, especially with lifecycle management rules
+    cleaning up old backups. 20GB of combined server archives and rotating
+    backups is $0.023 per GB, $0.46 a month, or $0.0006 an hour.
+
+From these numbers, when my server is running, I'm paying roughly *$0.045* an
+hour or *$33.73* a month to run it full-time. When my server is off, but I want
+to preserved my backups and elastic IP address, I'm paying *$4.17* a month. Just
+preserving backups is only *$0.46*, which is very reasonable.
+
+==== t2.medium
+
+Options with less RAM more be suited to smaller loads. One example is a
+_t2.medium_, which has only 4GB of RAM and no SSD, which means it requires an
+EBS volume. The upside is that it only costs $0.0134 an hour. If we use a 30GB
+ephemeral EBS volume that's deleted on instance termination, that adds roughly
+$0.0004 an hour.
+
+Using this less powerful, less expensive instance brings considerable savings:
+*$0.0255* an hour, or *$18.97* when run for an entire month.
 
 == Setup
 
 Start by checking out this repository, and navigating to your checkout-out
 directory. Sample bash commands provided are from the root directory unless
-otherwise noted and .
+otherwise noted.
 
 === Requirements
 
@@ -84,9 +166,11 @@ delete your EIPs and create new ones when you're ready to begin hosting again.
 
 ==== Virtual Environment & Requirements
 
-Using pip, install the necessary Python requirements. This installs Ansible,
-the AWS command-line interface, and libraries required for interacting with AWS
-programmatically.
+Using pip, install the necessary Python requirements. I recommend using
+https://virtualenv.pypa.io/en/stable/[virtualenv] and
+https://pypi.python.org/pypi/virtualenvwrapper/[virtualenvwrapper]. Running the
+following installs Ansible, the AWS command-line interface, and libraries
+required for interacting with AWS programmatically.
 
 ```
 $ mkvirtualenv minecraft
@@ -96,19 +180,21 @@ $ mkvirtualenv minecraft
 ==== Terraform
 
 Terraform allows you to easily setup EC2 and S3 to match your needs. You'll
-need to do some minor configuration in `terraform/variables.tf`. The only
-setting that absolutely needs to be changed is the `bucket_name`, which should
-match the name of the S3 bucket you'll be using. You'll also need to update the
-`aws_region`, if you're not running in the default region ('us-east-1').
+need to do some minor configuration in `terraform/variables.tf`. Update the
+`bucket_name`, `aws_region`, `aws_availability_zone`, and `aws_instance_type`
+as desired.
 
-Then, from the root directory of your modified `mining-camp` checkout run:
+NOTE: It's important you choose the right _aws_availability_zone_, since spot
+prices can vary substantially from zone to zone.
+
+Once you're satisfied, apply the configuration:
 
 ```
 ./terraform apply terraform/
 ```
 
 Once this has successfully completed, your AWS configuration is complete.
-Unless you change your AWS configuration, you won't need to run this again.
+Unless you change your configuration, you won't need to run this again.
 
 ==== Ansible
 
@@ -119,6 +205,8 @@ the following:
 * `aws_region` - Only if using a region other than the default ('us-east-1').
 * `minecraft_eip_alloc_id` - Use the allocation ID of the elastic IP you
 created above, like 'eipalloc-06237b35'.
+* `aws_instance_type` - The instance type desired, such as _i3.large_. This
+should match the instance type in your Terraform config.
 * `s3_bucket` - The name of the bucket you'll be using. Should match the bucket
 name you set in the Terraform config.
 * `server_name` - Each server has its own directory in your S3 bucket,
@@ -248,5 +336,13 @@ Now you can launch the test suite:
 Currently uses an auto-scaling group, rather than a launch configuration. I'd
 like to port it over to use the newer launch configurations instead.
 
+Support instance types other than i3. It's pretty easy, but right now the
+playbook for launching the server attempts to mount the NVMe drive to
+`/minecraft`, but that storage configuration is unique to i3 instance types.
+
 Create a configuration script that can take user input and populate the
 configuration files as needed. This would make this so painless!
+
+Add dynamic terraform variable support, so Ansible can pull the AWS
+configuration from Terraform's state instead of having information not only
+duplicated but potentially not up to date as well.
