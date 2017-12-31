@@ -14,8 +14,8 @@ image::https://i.imgur.com/jvJzU6v.png[Mining Camp]
 
 Amazon sells spare EC2 instances that aren't currently reserved, called "spot
 instances", for a fraction of the cost of a reserving them. If you can mitigate
-their volatility risk, they're an excellent deal. This approach isn't without
-trade-offs, but the pros far outweight the cons.
+their volatility risk, they're an excellent deal and powerful enough to host
+demanding game servers.
 
 _Advantages:_
 
