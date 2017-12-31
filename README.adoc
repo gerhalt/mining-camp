@@ -1,7 +1,6 @@
 Mining Camp
 ===========
 :toc:
-:toc-placement: preamble
 :toclevels: 3
 
 Easy automated configuration and deployment of Minecraft servers on AWS spot
@@ -17,7 +16,8 @@ instances", for a fraction of the cost of a reserving them. If you can mitigate
 their volatility risk, they're an excellent deal. This approach isn't without
 trade-offs, but the pros far outweight the cons.
 
-Advantages:
+_Advantages:_
+
 * More control over everything. SSH into the box, troubleshoot, adjust anything
 you like on the fly.
 * Better bang for your buck. More powerful systems than most hosting services
@@ -29,14 +29,15 @@ it off.
 Windows instances are not only more of a pain, they're also far more expensive.
 * Works with any AWS region, so you can minimize latency for your player base.
 
-Disadvantages:
+_Disadvantages:_
+
 * Spot instances can be terminated at any time. This is mitigated by both the
 emergency shutdown monitoring script, but in practice reasonable bids for spot
 instances result in excellent uptime.
 * Requires initial work to setup. This isn't a push-button solution, but once
 you're done with the setup day-to-day interactions are extremely easy.
 
-=== Example Cost Breakdown
+=== Sample Cost Breakdown
 
 Your needs will almost certainly differ, so cross-referencing
 https://aws.amazon.com/ec2/spot/pricing/[spot instance pricing] with the
@@ -46,7 +47,7 @@ All calculations here are based on an instance in `us-east-1`, and assume a
 
 I'm using an i3.large, which has a ~16GB of RAM and a 500GB NVMe drive,
 which means I don't have to pay for an additional EBS volume on top of the
-root drive.
+root drive. Price estimates for the various moving pieces:
 
 * Current spot instance price for an i3.large is $0.0371 per hour at present.
 * An 8GB EBS is used as the root volume for the instance, at $0.10 per
@@ -62,10 +63,13 @@ root drive.
     cleaning up old backups. 20GB of combined server archives and rotating
     backups is $0.023 per GB, $0.46 a month, or $0.0006 an hour.
 
-From these numbers, when my server is running, I'm paying roughly *$.045* an
+From these numbers, when my server is running, I'm paying roughly *$0.045* an
 hour or *$33.73* a month to run it full-time. When my server is off, but I want
 to preserved my backups and elastic IP address, I'm paying *$4.17* a month. Just
 preserving backups is only *$0.46*, which is very reasonable.
+
+NOTE: AWS charges for absolutely everything. It's critical that you monitor
+your bill and be aware of where you're incurring charges.
 
 == Setup
 
