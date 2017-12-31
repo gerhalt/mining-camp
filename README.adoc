@@ -4,10 +4,68 @@ Mining Camp
 :toc-placement: preamble
 :toclevels: 3
 
+Easy automated configuration and deployment of Minecraft servers on AWS spot
+instances, with features such as instance shutdown monitoring and automatic
+backups and restorations using S3.
+
 image::https://i.imgur.com/jvJzU6v.png[Mining Camp]
 
-Easy automated configuration and deployment of Minecraft servers on AWS spot
-instances, featuring automatic backups and restoration using S3.
+== Introduction
+
+Amazon sells spare EC2 instances that aren't currently reserved, called "spot
+instances", for a fraction of the cost of a reserving them. If you can mitigate
+their volatility risk, they're an excellent deal. This approach isn't without
+trade-offs, but the pros far outweight the cons.
+
+Advantages:
+* More control over everything. SSH into the box, troubleshoot, adjust anything
+you like on the fly.
+* Better bang for your buck. More powerful systems than most hosting services
+offer.
+* Pay for exactly what you use. Spot instances are billed by the second, so if
+your server isn't going to be used for a few days, or even overnight, just turn
+it off.
+* Linux-based. This might be a disadvantage, depending on your comfort level.
+Windows instances are not only more of a pain, they're also far more expensive.
+* Works with any AWS region, so you can minimize latency for your player base.
+
+Disadvantages:
+* Spot instances can be terminated at any time. This is mitigated by both the
+emergency shutdown monitoring script, but in practice reasonable bids for spot
+instances result in excellent uptime.
+* Requires initial work to setup. This isn't a push-button solution, but once
+you're done with the setup day-to-day interactions are extremely easy.
+
+=== Example Cost Breakdown
+
+Your needs will almost certainly differ, so cross-referencing
+https://aws.amazon.com/ec2/spot/pricing/[spot instance pricing] with the
+https://aws.amazon.com/ec2/instance-types/[EC2 instance types] is helpful.
+All calculations here are based on an instance in `us-east-1`, and assume a
+31-day month.
+
+I'm using an i3.large, which has a ~16GB of RAM and a 500GB NVMe drive,
+which means I don't have to pay for an additional EBS volume on top of the
+root drive.
+
+* Current spot instance price for an i3.large is $0.0371 per hour at present.
+* An 8GB EBS is used as the root volume for the instance, at $0.10 per
+    GB-month, or roughly $0.00013 an hour. This is deleted on instance shutdown,
+    so no charges are incurred when the server is off.
+* Elastic IPs are free when assigned to a running instance, and $0.005 per hour
+    when unassigned.
+* AWS data transfer is pretty expensive, at $0.09 per GB. I use about 1.4GB per
+    day, but my server has a lot of time when it's completely idle. For the
+    sake of round numbers, 2GB of bandwidth a day winds up being $0.0075 an
+    hour. This cost is very subjective.
+* S3 is actually quite cheap, especially with lifecycle management rules
+    cleaning up old backups. 20GB of combined server archives and rotating
+    backups is $0.023 per GB, $0.46 a month, or $0.0006 an hour.
+
+From these numbers, when my server is running, I'm paying roughly *$.045* an
+hour or *$33.73* a month to run it full-time. When my server is off, but I want
+to preserved my backups and elastic IP address, I'm paying *$4.17* a month. Just
+preserving backups is only *$0.46*, which is very reasonable.
 
 == Setup
 
@@ -86,9 +144,11 @@ delete your EIPs and create new ones when you're ready to begin hosting again.
 
 ==== Virtual Environment & Requirements
 
-Using pip, install the necessary Python requirements. This installs Ansible,
-the AWS command-line interface, and libraries required for interacting with AWS
-programmatically.
+Using pip, install the necessary Python requirements. I recommend using
+https://virtualenv.pypa.io/en/stable/[virtualenv] and
+https://pypi.python.org/pypi/virtualenvwrapper/[virtualenvwrapper]. Running the
+following installs Ansible, the AWS command-line interface, and libraries
+required for interacting with AWS programmatically.
 
 ```
 $ mkvirtualenv minecraft
