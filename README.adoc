@@ -50,11 +50,14 @@ availability zones as well.
 All calculations below are based on an instance in `us-east-1`, and assume a
 31-day month.
 
+NOTE: AWS charges for absolutely everything. It's critical that you monitor
+your bill and be aware of where you're incurring charges.
+
 ==== i3.large
 
-I'm using an _i3.large_, which has a ~16GB of RAM and a 500GB NVMe drive,
-which means I don't have to pay for an additional EBS volume on top of the
-root drive. Price estimates for the various moving pieces:
+An _i3.large_ is a quite powerful instance with ~16GB of RAM and a 500GB NVMe
+drive, meaning an EBS (beyond the 8GB root volume) isn't required. Price
+estimates for the various moving pieces:
 
 * Current spot instance price for an _i3.large_ is $0.0371 per hour at present.
 * An 8GB EBS is used as the root volume for the instance, at $0.10 per
@@ -74,9 +77,6 @@ From these numbers, when my server is running, I'm paying roughly *$0.045* an
 hour or *$33.73* a month to run it full-time. When my server is off, but I want
 to preserved my backups and elastic IP address, I'm paying *$4.17* a month. Just
 preserving backups is only *$0.46*, which is very reasonable.
-
-NOTE: AWS charges for absolutely everything. It's critical that you monitor
-your bill and be aware of where you're incurring charges.
 
 ==== t2.medium
 
