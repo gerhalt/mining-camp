@@ -52,11 +52,11 @@ All calculations below are based on an instance in `us-east-1`, and assume a
 
 ==== i3.large
 
-I'm using an i3.large, which has a ~16GB of RAM and a 500GB NVMe drive,
+I'm using an _i3.large_, which has a ~16GB of RAM and a 500GB NVMe drive,
 which means I don't have to pay for an additional EBS volume on top of the
 root drive. Price estimates for the various moving pieces:
 
-* Current spot instance price for an i3.large is $0.0371 per hour at present.
+* Current spot instance price for an _i3.large_ is $0.0371 per hour at present.
 * An 8GB EBS is used as the root volume for the instance, at $0.10 per
     GB-month, or roughly $0.00013 an hour. This is deleted on instance shutdown,
     so no charges are incurred when the server is off.
