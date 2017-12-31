@@ -1,6 +1,7 @@
 Mining Camp
 ===========
 :toc:
+:toc-placement: preamble
 :toclevels: 3
 
 Easy automated configuration and deployment of Minecraft servers on AWS spot
