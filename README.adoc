@@ -239,11 +239,18 @@ $ unzip FTBRevelationServer_1.0.0.zip
 
 $ # Install the server requirements
 $ sh ./FTBInstall.sh
+
+$ # Launch the server. You'll need to do this twice, once to create the
+$ # eula.txt and once to generate the base
+$ sh ./ServerStart.sh
+Missing eula.txt. Startup will fail and eula.txt will be created
+Make sure to read eula.txt before playing!
+To continue press <enter>
 ```
 
-Open the EULA, and agree (or don't) to the terms and conditions.
+Open `eula.txt`, and agree (or don't) to the terms and conditions.
 
-Launch the server once, and wait for it to complete. This will generate the
+Launch the server again, and wait for it to complete. This will generate the
 world base, and any settings and properties files necessary. Quit the server,
 and do the following as desired:
 
