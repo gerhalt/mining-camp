@@ -9,7 +9,7 @@ variable "minecraft" {
 
 variable "max_spot_price" {
   description = "Maximum amount to pay for per spot instance per hour."
-  default     = "0.06"
+  default     = "0.05"
 }
 
 variable "aws_region" {
@@ -19,10 +19,10 @@ variable "aws_region" {
 
 variable "aws_availability_zone" {
   description = "AWS availability zone to launch servers in."
-  default     = "us-east-1f"
+  default     = "us-east-1e"
 }
 
 variable "aws_instance_type" {
   description = "Spot instance type to launch."
-  default     = "i3.large"
+  default     = "m2.xlarge"
 }

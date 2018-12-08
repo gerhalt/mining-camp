@@ -46,7 +46,7 @@
   - name: "Create minecraft root directory"
     become: true
     file:
-      path: /minecraft
+      path: "{{minecraft_dir}}"
       owner: ubuntu
       group: ubuntu
       state: directory
@@ -58,60 +58,73 @@
     become_user: root
     shell: |
         mkfs.ext4 /dev/nvme0n1
-        mount -t ext4 /dev/nvme0n1 /minecraft
-        chown ubuntu:ubuntu /minecraft
+        mount -t ext4 /dev/nvme0n1 {{minecraft_dir}}
+        chown ubuntu:ubuntu {{minecraft_dir}}
+
+  - name: "Move mountpoint to minecraft directory"
+    when: aws_instance_category == "m2"
+    become: true
+    shell: |
+        umount /mnt
+        mount /dev/xvdb {{minecraft_dir}}
+        chown ubuntu:ubuntu {{minecraft_dir}}
 
   - name: "Clone git repo into minecraft directory"
     git:
       repo: https://github.com/gerhalt/mining-camp.git
-      dest: /minecraft/mining-camp
+      dest: "{{minecraft_dir}}/mining-camp"
 
   - name: "Install Python requirements"
     become: true
     shell: |
-      pip install -r '/minecraft/mining-camp/requirements.txt'
+      pip install -r '{{minecraft_dir}}/mining-camp/requirements.txt'
+
+  - name: "Ensure server tarball doesn't exist"
+    file:
+      path: "{{minecraft_dir}}/{{server_file}}"
+      state: absent
 
   - name: "Retrieve server tarball from S3"
     s3:
       bucket: "{{s3_bucket}}"
       object: "/{{server_name}}/{{server_file}}"
-      dest: "/minecraft/{{server_file}}"
+      dest: "{{minecraft_dir}}/{{server_file}}"
       mode: get
 
   - name: "Extract and install server"
     shell: |
-      cd /minecraft
+      cd {{minecraft_dir}}
       tar -xzvf {{server_file}}
 
   - name: "Install prospector config"
     copy:
       src: "files/prospector.cfg"
-      dest: "/minecraft/prospector.cfg"
+      dest: "{{minecraft_dir}}/prospector.cfg"
 
   - name: "Install minecraft server config"
     copy:
       src: "files/server.properties"
-      dest: "/minecraft/{{server_name}}/server.properties"
+      dest: "{{minecraft_dir}}/{{server_name}}/server.properties"
 
   - name: "Add backup script to crontab"
     cron:
       name: "minecraft backup monitor"
       minute: "*/5"
-      job: "/minecraft/mining-camp/utilities/prospector.py backup"
+      job: "{{minecraft_dir}}/mining-camp/utilities/prospector.py backup"
 
   - name: "Start emergency shutdown monitoring script in the background"
     # In order to run a background process, we detach inputs and outputs and
     # use nohup. This runs shutdown.sh in its daemon mode.
     shell: |
-      nohup /minecraft/mining-camp/utilities/shutdown.sh /minecraft </dev/null >/dev/null 2>&1 &
+      nohup {{minecraft_dir}}/mining-camp/utilities/shutdown.sh {{minecraft_dir}} </dev/null >/dev/null 2>&1 &
 
   - name: "Fetch most recent backup from S3 and install it"
     shell: |
-      /minecraft/mining-camp/utilities/prospector.py fetch
+        {{minecraft_dir}}/mining-camp/utilities/prospector.py fetch
 
   - name: "Start server bootstrap script"
     shell: |
-      /minecraft/mining-camp/utilities/bootstrap.sh /minecraft/{{server_name}}
+      {{minecraft_dir}}/mining-camp/utilities/bootstrap.sh {{minecraft_dir}}/{{server_name}}
 
   - name: "Assign elastic ip"
     local_action: shell aws ec2 associate-address --region {{aws_region}} --instance-id {{ec2_id}} --allocation-id {{minecraft_eip_alloc_id}}
