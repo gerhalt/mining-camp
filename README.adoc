@@ -100,8 +100,8 @@ otherwise noted.
 You'll need to download and install the following requirements (versions I
 build and tested with are in parenthesis):
 
-* `pip` (v9.0.1)
-* `terraform` (0.10.2)
+* `pip` (9.0.1)
+* `terraform` (0.12.24)
 
 You'll need an appropriate version of the JDK/JVM to run the server locally at
 least once, allowing it to generate the necessary configuration files.
@@ -342,10 +342,6 @@ Now you can launch the test suite:
 
 Currently uses an auto-scaling group, rather than a launch configuration. I'd
 like to port it over to use the newer launch configurations instead.
-
-Support instance types other than i3. It's pretty easy, but right now the
-playbook for launching the server attempts to mount the NVMe drive to
-`/minecraft`, but that storage configuration is unique to i3 instance types.
 
 Create a configuration script that can take user input and populate the
 configuration files as needed. This would make this so painless!
