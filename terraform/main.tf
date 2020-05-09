@@ -1,7 +1,7 @@
 # Provider and access details
 provider "aws" {
   profile = "minecraft"
-  region  = "${var.aws_region}"
+  region  = var.aws_region
 }
 
 # Create a VPC for our instances
@@ -10,21 +10,21 @@ resource "aws_vpc" "default" {
 }
 
 resource "aws_subnet" "main" {
-  vpc_id            = "${aws_vpc.default.id}"
-  availability_zone = "${var.aws_availability_zone}"
+  vpc_id            = aws_vpc.default.id
+  availability_zone = var.aws_availability_zone
   cidr_block        = "10.0.0.0/16"
 }
 
 # Create a gateway for our VPC
 resource "aws_internet_gateway" "default" {
-  vpc_id = "${aws_vpc.default.id}"
+  vpc_id = aws_vpc.default.id
 }
 
 # We'll need to add a route to the internet from our VPC
 resource "aws_route" "internet_access" {
-  route_table_id         = "${aws_vpc.default.main_route_table_id}"
+  route_table_id         = aws_vpc.default.main_route_table_id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = "${aws_internet_gateway.default.id}"
+  gateway_id             = aws_internet_gateway.default.id
 }
 
 # Security group that allows SSH, Web Traffic, and a special port for our
@@ -32,7 +32,7 @@ resource "aws_route" "internet_access" {
 resource "aws_security_group" "default" {
   name        = "minecraft"
   description = "Security group for standalone MC server"
-  vpc_id      = "${aws_vpc.default.id}"
+  vpc_id      = aws_vpc.default.id
 
   # HTTP
   ingress {
@@ -60,14 +60,14 @@ resource "aws_security_group" "default" {
 
   # Minecraft
   ingress {
-    from_port   = "${var.minecraft["port"]}"
-    to_port     = "${var.minecraft["port"]}"
+    from_port   = var.minecraft["port"]
+    to_port     = var.minecraft["port"]
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = "${var.minecraft["port"]}"
-    to_port     = "${var.minecraft["port"]}"
+    from_port   = var.minecraft["port"]
+    to_port     = var.minecraft["port"]
     protocol    = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -104,28 +104,28 @@ data "aws_ami" "ubuntu" {
 # our entire instance configuration every time.
 resource "aws_launch_configuration" "minecraft" {
   name              = "minecraft"
-  image_id          = "${data.aws_ami.ubuntu.id}"
-  instance_type     = "${var.aws_instance_type}"
-  spot_price        = "${var.max_spot_price}"
+  image_id          = data.aws_ami.ubuntu.id
+  instance_type     = var.aws_instance_type
+  spot_price        = var.max_spot_price
   ebs_optimized     = false
   enable_monitoring = false
 
   associate_public_ip_address = true
 
-  iam_instance_profile = "${aws_iam_instance_profile.minecraft.name}"
-  security_groups      = ["${aws_security_group.default.id}"]
+  iam_instance_profile = aws_iam_instance_profile.minecraft.name
+  security_groups      = [aws_security_group.default.id]
   key_name             = "aws-public"
 }
 
 # Autoscaling Group
 resource "aws_autoscaling_group" "minecraft" {
-  vpc_zone_identifier = ["${aws_subnet.main.id}"]
+  vpc_zone_identifier = [aws_subnet.main.id]
 
   name                 = "minecraft"
   desired_capacity     = 0
   min_size             = 0
   max_size             = 1
-  launch_configuration = "${aws_launch_configuration.minecraft.name}"
+  launch_configuration = aws_launch_configuration.minecraft.name
 
   tags = []
 }
