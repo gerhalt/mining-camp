@@ -35,13 +35,8 @@
   - name: "Install prerequisites"
     become: true
     apt:
-      name: "{{item}}"
+      name: ["awscli", "openjdk-8-jre-headless", "python-pip", "jq"]
       update_cache: yes
-    with_items:
-    - awscli
-    - openjdk-8-jre-headless
-    - python-pip
-    - jq
 
   - name: "Create minecraft root directory"
     become: true
@@ -85,7 +80,7 @@
       state: absent
 
   - name: "Retrieve server tarball from S3"
-    s3:
+    aws_s3:
       bucket: "{{s3_bucket}}"
       object: "/{{server_name}}/{{server_file}}"
       dest: "{{minecraft_dir}}/{{server_file}}"
