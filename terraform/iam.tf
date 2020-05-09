@@ -23,14 +23,14 @@ EOF
 # automatically when a role is created.
 resource "aws_iam_instance_profile" "minecraft" {
   name = "minecraft"
-  role = "${aws_iam_role.minecraft.name}"
+  role = aws_iam_role.minecraft.name
 }
 
 # Assigns policies to the server role, in this case we allow all operations on
 # our S3 bucket
 resource "aws_iam_role_policy" "minecraft" {
   name   = "minecraft"
-  role   = "${aws_iam_role.minecraft.id}"
+  role   = aws_iam_role.minecraft.id
   policy = <<EOF
 {
   "Version": "2012-10-17",

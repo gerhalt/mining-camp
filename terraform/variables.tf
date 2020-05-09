@@ -1,5 +1,5 @@
 variable "minecraft" {
-  type = "map"
+  type = map
 
   default = {
     port        = 25565

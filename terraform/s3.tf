@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "minecraft" {
-  bucket = "${var.minecraft["bucket_name"]}"
+  bucket = var.minecraft["bucket_name"]
   acl    = "private"
 
   lifecycle_rule {
@@ -16,8 +16,8 @@ resource "aws_s3_bucket" "minecraft" {
     id      = "backup pruning"
     enabled = true
 
-    tags {
-      "backup"    = "old"
+    tags = {
+      backup = "old"
     }
 
     expiration {
