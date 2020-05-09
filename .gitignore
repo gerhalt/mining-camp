@@ -34,3 +34,7 @@ Sessionx.vim
 tags
 
 [._]*.un~
+
+# Python
+__pycache__/
+*.py[cod]
