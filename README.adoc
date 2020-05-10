@@ -262,8 +262,6 @@ available. It then takes your input and renders out `terraform/variables.tf`
 and `ansible/group_vars/all` from corresponding `*.j2` templates. If you like,
 you can populate those templates by hand.
 
-Tips:
-
 * It's important you choose the right _aws_availability_zone_, since spot
   prices can vary substantially from zone to zone.
 * Maximum spot price determines the maximum price you're willing to pay per
