@@ -1,13 +1,13 @@
 [main]
 # Name of the S3 bucket to use
-s3_bucket: "{{ s3_bucket }}"
+s3_bucket: {{ aws['s3_bucket'] }}
 
 # Name of the server, used for determining S3 key when working with backups
-server_name: "{{ server['name'] }}"
+server_name: {{ server['name'] }}
 
 # Root directory of the server
-server_root_dir: "{{ server['root_dir'] }}"
+server_root_dir: {{ server['root_dir'] }}
 
 # Name of the world to operate on when creating backups
-world_name: "{{ world_name }}"
+world_name: {{ world_name }}
 

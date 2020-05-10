@@ -127,10 +127,9 @@ aws_access_key_id = <your_access_key_here>
 aws_secret_access_key = <your_secret_key_here>
 ```
 
-For these credentials to be used, you will either need to set the environment
-(like `export AWS_PROFILE=minecraft`) or, if you prefer, you can change the
-section to `[default]` if you'd like to use them automatically for all AWS
-interactions.
+If you have more than one AWS profile, you'll need to set the `AWS_PROFILE`
+environment variable with `export AWS_PROFILE=minecraft` for the `aws` commands
+below to work.
 
 ===== Key Pair
 
