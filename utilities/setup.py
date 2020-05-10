@@ -74,7 +74,6 @@ def main():
         ('aws', 'availability_zone', str, 'us-east-1e', 'AWS availability zone to use'),
         ('aws', 'instance_type', str, None, 'EC2 instance type to use'),
         ('aws', 'instance_tag', str, 'minecraft', 'AWS tag to use on minecraft EC2 instances'),
-        ('aws', 'eip_alloc_id', str, None, 'AWS elastic IP allocation ID'),
         ('server', 'port', int, 25565, 'Port number Minecraft should use'),
         ('server', 'root_dir', str, '/minecraft', 'Root directory to install minecraft to on the server'),
         ('server', 'name', str, None, 'Minecraft server name'),

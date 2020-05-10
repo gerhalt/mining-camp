@@ -115,6 +115,11 @@ resource "aws_launch_configuration" "minecraft" {
   iam_instance_profile = aws_iam_instance_profile.minecraft.name
   security_groups      = [aws_security_group.default.id]
   key_name             = "aws-public"
+
+  user_data = templatefile("${ path.module }/provision.sh", {
+      bucket_name = var.minecraft["bucket_name"],
+      server_name = var.minecraft["server_name"]
+  })
 }
 
 # Autoscaling Group

@@ -145,25 +145,6 @@ _NETWORK & SECURITY -> Key Pairs_ page. Upload your public key, and name it
 "aws-public". The launch configuration Terraform creates includes this key,
 allowing SSH access to Ansible (and for troubleshooting!)
 
-===== Elastic IP Creation
-
-You'll need to create an elastic IP for association with your instance,
-providing a convenient public-facing IP. In the AWS console, do the following:
-
-1. Enter the EC2 service.
-2. Click on _Elastic IPs_, under the _NETWORK & SECURITY_ menu on the left-hand
-side of the screen.
-3. Click _Allocate new address_.
-4. Leave the scope as "VPC", and click close.
-5. You should see your new elastic IP in the list. Save the _Allocation ID_ for
-later use during the setup.
-
-Once a server has been spun up, this elastic IP will be attached to it. Note
-that allocated elastic IPs are included in the price of a running instance, but
-you will be billed for any un-assigned EIPs by the hour. For this reason, if
-you plan to stop your Minecraft server for long periods of time, be sure to
-delete your EIPs and create new ones when you're ready to begin hosting again.
-
 ==== Virtual Environment & Requirements
 
 Using pip, install the necessary Python 2.7 requirements. I recommend using

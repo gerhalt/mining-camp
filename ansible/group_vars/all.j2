@@ -13,10 +13,6 @@ aws_instance_type: {{ aws['instance_type'] }}
 # Install directory
 minecraft_dir: {{ server['root_dir'] }}
 
-# Elastic IP to be associated with your instance, like
-# "eipalloc-0a83fcd026e2d1d2d"
-minecraft_eip_alloc_id: {{ aws['eip_alloc_id'] }}
-
 # Instance tag, like "minecraft"
 minecraft_tag: {{ aws['instance_tag'] }}
 
