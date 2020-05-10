@@ -1,0 +1,34 @@
+# AWS
+# Profile to use (probably "minecraft")
+aws_profile: {{ aws['profile'] }}
+
+# Region, like "us-east-1"
+aws_region: {{ aws['region'] }}
+
+# AWS instance type, like "m2.xlarge"
+aws_instance_type: {{ aws['instance_type'] }}
+
+
+# Provisioning & Setup
+# Install directory
+minecraft_dir: {{ server['root_dir'] }}
+
+# Elastic IP to be associated with your instance, like
+# "eipalloc-0a83fcd026e2d1d2d"
+minecraft_eip_alloc_id: {{ aws['eip_alloc_id'] }}
+
+# Instance tag, like "minecraft"
+minecraft_tag: {{ aws['instance_tag'] }}
+
+# S3 bucket to use, like "josh-minecraft"
+s3_bucket: {{ aws['s3_bucket'] }}
+
+# Server name, like "daftcyborg"
+server_name: {{ server['name'] }}
+
+# Base archive, like "daftcyborg-server-8-20-2017.tgz"
+server_file: {{ server['base'] }}
+
+# World name, like "grandworld". Should match the name defined in
+# server.properties.
+world_name: {{ server['world_name'] }}

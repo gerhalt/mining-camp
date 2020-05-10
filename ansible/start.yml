@@ -1,9 +1,10 @@
-- name: "Set ASG size to 1"
+- name: "Resizing ASG"
   hosts: localhost
   gather_facts: false
 
   tasks:
-  - ec2_asg:
+  - name: "Set auto-scaling group size to 1"
+    ec2_asg:
       name: "minecraft"
       desired_capacity: 1
       region: "{{aws_region}}"
@@ -14,11 +15,16 @@
 
 # Fact gathering doesn't work if Python isn't available on the hosts, so we do
 # this and the prior task first
-- name: "Pre-fact-gathering Setup"
+- name: "Pre-fact-gathering setup"
   hosts: all
   gather_facts: false
 
   tasks:
+  - name: "Wait for connection"
+    wait_for_connection:
+      delay: 30
+      timeout: 300
+
   - name: "Install Python on hosts"
     become: true
     raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
@@ -35,13 +41,8 @@
   - name: "Install prerequisites"
     become: true
     apt:
-      name: "{{item}}"
+      name: ["awscli", "openjdk-8-jre-headless", "python-pip", "jq"]
       update_cache: yes
-    with_items:
-    - awscli
-    - openjdk-8-jre-headless
-    - python-pip
-    - jq
 
   - name: "Create minecraft root directory"
     become: true
@@ -85,7 +86,7 @@
       state: absent
 
   - name: "Retrieve server tarball from S3"
-    s3:
+    aws_s3:
       bucket: "{{s3_bucket}}"
       object: "/{{server_name}}/{{server_file}}"
       dest: "{{minecraft_dir}}/{{server_file}}"
@@ -96,9 +97,9 @@
       cd {{minecraft_dir}}
       tar -xzvf {{server_file}}
 
-  - name: "Install prospector config"
-    copy:
-      src: "files/prospector.cfg"
+  - name: "Render and install prospector config"
+    template:
+      src: "templates/prospector.cfg.j2"
       dest: "{{minecraft_dir}}/prospector.cfg"
 
   - name: "Install minecraft server config"

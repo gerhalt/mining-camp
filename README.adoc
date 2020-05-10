@@ -156,7 +156,7 @@ side of the screen.
 3. Click _Allocate new address_.
 4. Leave the scope as "VPC", and click close.
 5. You should see your new elastic IP in the list. Save the _Allocation ID_ for
-later use in the Ansible configuration.
+later use during the setup.
 
 Once a server has been spun up, this elastic IP will be attached to it. Note
 that allocated elastic IPs are included in the price of a running instance, but
@@ -176,50 +176,6 @@ required for interacting with AWS programmatically.
 $ mkvirtualenv minecraft
 (minecraft) $ pip install -r requirements.txt
 ```
-
-==== Terraform
-
-Terraform allows you to easily setup EC2 and S3 to match your needs. You'll
-need to do some minor configuration in `terraform/variables.tf`. Update the
-`bucket_name`, `aws_region`, `aws_availability_zone`, and `aws_instance_type`
-as desired.
-
-NOTE: It's important you choose the right _aws_availability_zone_, since spot
-prices can vary substantially from zone to zone.
-
-Once you're satisfied, apply the configuration:
-
-```
-./terraform apply terraform/
-```
-
-Once this has successfully completed, your AWS configuration is complete.
-Unless you change your configuration, you won't need to run this again.
-
-==== Ansible
-
-Ansible is used to configure the settings on the EC2 instance itself, once it's
-up and running. Open `ansible/group_vars/all` in your favourite editor, and set
-the following:
-
-* `aws_region` - Only if using a region other than the default ('us-east-1').
-* `minecraft_eip_alloc_id` - Use the allocation ID of the elastic IP you
-created above, like 'eipalloc-06237b35'.
-* `aws_instance_type` - The instance type desired, such as _i3.large_. This
-should match the instance type in your Terraform config.
-* `s3_bucket` - The name of the bucket you'll be using. Should match the bucket
-name you set in the Terraform config.
-* `server_name` - Each server has its own directory in your S3 bucket,
-containing both the server archive and all the server's periodic backups.
-* `server_file` - Name of the server archive containing the Minecraft server.
-More details on creating this archive are below.
-
-Update `ansible/files/prospector.cfg` with the same settings, as well as with
-the _world_name_ you'll be using.
-
-Lastly, update `ansible/ec2.ini`'s `regions` entry with the AWS region you're
-using. You can set this to _all_, but the dynamic EC2 entry script will take
-longer.
 
 ==== Minecraft Server Archive
 
@@ -274,8 +230,7 @@ Now, clean up your leftover base archive, since you don't need it anymore:
 $ rm FTBRevelationServer_1.0.0.zip
 ```
 
-Navigate up a level, and create a gzipped tarball with the same name as the
-`server_file` name in `ansible/group_vars/all`:
+Navigate up a level, and create a gzipped tarball:
 
 ```
 $ cd ..
@@ -290,24 +245,60 @@ $ # My version looks like:
 $ aws s3 cp daftcyborg-server-12-20-2017.tgz s3://josh-minecraft/daftcyborg/
 ```
 
+Lastly, save the full name, including file extension, of the archive you
+generated; it will be required when you run the setup wizard.
+
+==== Settings
+
+The recommended way to configure the system is to run the setup wizard
+from the root repo directory, like so:
+
+```
+$ ./utilities/setup.py
+```
+
+This guides you through each required setting, offering default values if
+available. It then takes your input and renders out `terraform/variables.tf`
+and `ansible/group_vars/all` from corresponding `*.j2` templates. If you like,
+you can populate those templates by hand.
+
+* It's important you choose the right _aws_availability_zone_, since spot
+  prices can vary substantially from zone to zone.
+* Maximum spot price determines the maximum price you're willing to pay per
+  hour. Setting this wisely will prevent you from being surprised by a large
+  bill at the end of the month.
+
+==== Terraform
+
+Terraform allows you to easily setup EC2 and S3 to match your needs. To apply
+the terraform configuration, run:
+
+```
+terraform apply terraform/
+```
+
+Once this has successfully completed, your AWS configuration is done. Unless
+you change your configuration, you won't need to run this again.
+
 == Spot Instance Interactions
 
 === Server Launch & Provision
 
-Jump to the `ansible` directory, and run the playbook to configure the instance
-and launch the minecraft server:
+
+Jump to the `ansible` directory, and run the `start.yml` playbook to configure
+the instance and launch the minecraft server:
 
 ```
 cd ansible
-ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh start.yml
+ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu start.yml
 ```
 
-You may be prompted when attempting to connect to your host. If you'd like to
-skip this check, set `ANSIBLE_HOST_KEY_CHECKING=false` for these commands.
+NOTE: If the auto-inventory script is taking too long, you can update
+`ansible/ec2.ini`'s `regions` entry with the particular AWS region you're using.
 
-NOTE: On my setup, the Paramiko library Ansible uses by default ran into errors
-when attempting to gather facts from the server, so I had to use `-c ssh`
-instead.
+NOTE: If using an older version of Ansible, the Paramiko library used by
+default may run into errors when gathering facts from the remote host. If this
+happens, add `-c ssh` to the `ansible-playbook` command above.
 
 === Server Shutdown
 
@@ -337,15 +328,3 @@ Now you can launch the test suite:
 ```
 (minecraft) $ python -m unittest -v utilities.tests.test_prospector
 ```
-
-== Todo
-
-Currently uses an auto-scaling group, rather than a launch configuration. I'd
-like to port it over to use the newer launch configurations instead.
-
-Create a configuration script that can take user input and populate the
-configuration files as needed. This would make this so painless!
-
-Add dynamic terraform variable support, so Ansible can pull the AWS
-configuration from Terraform's state instead of having information not only
-duplicated but potentially not up to date as well.
