@@ -23,8 +23,12 @@ minecraft_tag: {{ aws['instance_tag'] }}
 # S3 bucket to use, like "josh-minecraft"
 s3_bucket: {{ aws['s3_bucket'] }}
 
-# Name, like "daftcyborg"
+# Server name, like "daftcyborg"
 server_name: {{ server['name'] }}
 
 # Base archive, like "daftcyborg-server-8-20-2017.tgz"
 server_file: {{ server['base'] }}
+
+# World name, like "grandworld". Should match the name defined in
+# server.properties.
+world_name: {{ server['world_name'] }}

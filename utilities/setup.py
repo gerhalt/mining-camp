@@ -78,6 +78,7 @@ def main():
         ('server', 'port', int, 25565, 'Port number Minecraft should use'),
         ('server', 'root_dir', str, '/minecraft', 'Root directory to install minecraft to on the server'),
         ('server', 'name', str, None, 'Minecraft server name'),
+        ('server', 'world_name', str, None, 'Minecraft world name (should match server.properties)'),
         ('server', 'base', str, None, 'Server base archive name in S3')
     )
     
