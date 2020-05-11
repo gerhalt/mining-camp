@@ -99,8 +99,14 @@ data "aws_ami" "ubuntu" {
 }
 
 
+# Route53
+resource "aws_route53_zone" "minecraft" {
+    name = "minecraft.daftcyb.org"
+}
+
+
 # Launch configuration
-# We'll use this to easy turn on and off our server without having to remake
+# We'll use this to easily turn on and off our server without having to remake
 # our entire instance configuration every time.
 resource "aws_launch_configuration" "minecraft" {
   name              = "minecraft"

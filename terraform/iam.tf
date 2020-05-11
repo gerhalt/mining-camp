@@ -38,6 +38,21 @@ resource "aws_iam_role_policy" "minecraft" {
     {
       "Effect": "Allow",
       "Action": "s3:*",
+      "Resource": [
+        "${aws_s3_bucket.minecraft.arn}",
+        "${aws_s3_bucket.minecraft.arn}/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "route53:*",
+      "Resource": "arn:aws:route53:::hostedzone/${aws_route53_zone.minecraft.zone_id}"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListHostedZonesByName"
+      ],
       "Resource": "*"
     }
   ]
