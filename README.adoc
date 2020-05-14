@@ -261,29 +261,41 @@ terraform apply terraform/
 Once this has successfully completed, your AWS configuration is done. Unless
 you change your configuration, you won't need to run this again.
 
+==== Ansible
+
+The first time you do the configurations, you'll need to bundle your local
+Ansible configuration and push it to your S3 bucket, under the same directory
+as your server is stored. A provided playbook takes care of this for you:
+
+```
+cd ansible/
+ansible bundle.yml
+```
+
+NOTE: You'll need to repeat this step each time you change any of the settings
+on your server.
+
+
 == Spot Instance Interactions
 
 === Server Launch & Provision
-
 
 Jump to the `ansible` directory, and run the `start.yml` playbook to configure
 the instance and launch the minecraft server:
 
 ```
 cd ansible
-ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu start.yml
+ansible-playbook start.yml
 ```
 
-NOTE: If the auto-inventory script is taking too long, you can update
-`ansible/ec2.ini`'s `regions` entry with the particular AWS region you're using.
-
-NOTE: If using an older version of Ansible, the Paramiko library used by
-default may run into errors when gathering facts from the remote host. If this
-happens, add `-c ssh` to the `ansible-playbook` command above.
+This merely increases the size of the auto-scaling group from 0 → 1; the server
+won't be available for a few more minutes as it provisions.
 
 === Server Shutdown
 
-Shutting down your server is just as easy as starting it:
+Shutting down your server is very similar, with a few extra command options
+that allow Ansible to SSH into the host and save the server state before
+killing the box itself.
 
 ```
 cd ansible
@@ -293,6 +305,18 @@ ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh stop.yml
 When this playbook finishes, your instance will be gone, but the state of the
 server will have been preserved and pushed to S3, ready for the next time you
 launch it.
+
+NOTE: If the auto-inventory script is taking too long, you can update
+`ansible/ec2.ini`'s `regions` entry with the particular AWS region you're using.
+
+NOTE: If using an older version of Ansible, the Paramiko library used by
+default may run into errors when gathering facts from the remote host. If this
+happens, add `-c ssh` to the `ansible-playbook` command above.
+
+== Troubleshooting
+
+Logs from the initial provision are available via the console as well as in
+`/var/log/user-data`.
 
 == Tests
 
