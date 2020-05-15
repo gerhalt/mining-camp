@@ -63,7 +63,7 @@ minecraft_msg () {
 # waits for it to exit.
 shutdown_server () {
     minecraft_cmd "stop"
-    pid=`pgrep -f ServerStart.sh`
+    pid=`pgrep -f 'java -Xms'`
     while ps -p $pid > /dev/null; do
         sleep 1
     done
