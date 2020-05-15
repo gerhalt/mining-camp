@@ -3,7 +3,7 @@ variable "minecraft" {
 
   default = {
     port        = 25565
-    bucket_name = "nerdhouse-minecraft"
+    bucket_name = "nmc_bucket"
   }
 }
 
