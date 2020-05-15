@@ -1,6 +1,6 @@
 # Provider and access details
 provider "aws" {
-  profile = "minecraft"
+  profile = "default"
   region  = var.aws_region
 }
 

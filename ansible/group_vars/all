@@ -1,0 +1,34 @@
+# AWS
+# Profile to use (probably "minecraft")
+aws_profile: default
+
+# Region, like "us-east-1"
+aws_region: us-east-1
+
+# AWS instance type, like "m2.xlarge"
+aws_instance_type: m3.xlarge
+
+
+# Provisioning & Setup
+# Install directory
+minecraft_dir: /minecraft
+
+# Elastic IP to be associated with your instance, like
+# "eipalloc-0a83fcd026e2d1d2d"
+minecraft_eip_alloc_id: eipalloc-0a303ae88920e457a
+
+# Instance tag, like "minecraft"
+minecraft_tag: minecraft
+
+# S3 bucket to use, like "josh-minecraft"
+s3_bucket: nerdhouse-minecraft
+
+# Server name, like "daftcyborg"
+server_name: nerdhouse
+
+# Base archive, like "daftcyborg-server-8-20-2017.tgz"
+server_file: nerdhouse-minecraft-05-14-2020.tar.gz
+
+# World name, like "grandworld". Should match the name defined in
+# server.properties.
+world_name: world
