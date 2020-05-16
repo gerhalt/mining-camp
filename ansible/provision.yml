@@ -7,6 +7,16 @@
       aws_instance_category: "{{ aws_instance_type.split('.')[0] }}"
       aws_instance_size: "{{ aws_instance_type.split('.')[1] }}"
 
+  - name: "Fetch the instance ID"
+    uri:
+      url: http://169.254.169.254/latest/meta-data/instance-id
+      return_content: true
+    register: aws_instance_id_resp
+
+  - name: "Register the instance ID from the response"
+    set_fact:
+      aws_instance_id: "{{aws_instance_id_resp.content}}"
+
   - name: "Install prerequisites"
     become: true
     apt:
@@ -92,7 +102,15 @@
     shell: |
       {{minecraft_dir}}/mining-camp/utilities/prospector.py fetch
 
+  # If using the old elastic IP method, we associate the IP with this instance
+  - name: "Associate elastic IP"
+    when: aws_eip_alloc_id is defined and aws_eip_alloc_id | length > 0
+    shell: |
+      aws ec2 associate-address --region {{aws_region}} --instance-id {{aws_instance_id}} --allocation-id {{aws_eip_alloc_id}}
+
+  # If hosted zones, we add an A record for this instance
   - name: "Download cli53"
+    when: hostname is defined and hostname | length > 0
     get_url:
       url: https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64
       dest: ./cli53
