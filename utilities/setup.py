@@ -41,7 +41,7 @@ def prompt_type(description, value_type, default=None):
 
     while True:
         value = raw_input(prompt) or default
-        if not value:
+        if value is None:
             continue
 
         if not isinstance(value, value_type):
@@ -74,7 +74,9 @@ def main():
         ('aws', 'availability_zone', str, 'us-east-1e', 'AWS availability zone to use'),
         ('aws', 'instance_type', str, None, 'EC2 instance type to use'),
         ('aws', 'instance_tag', str, 'minecraft', 'AWS tag to use on minecraft EC2 instances'),
-        ('server', 'port', int, 25565, 'Port number Minecraft should use'),
+        ('aws', 'eip_alloc_id', str, '', "AWS elastic IP allocation ID (optional)"),
+        ('server', 'hostname', str, '', "Server hostname, like 'minecraft.daftcyb.org' (optional)"),
+        ('server', 'port', int, 25565, 'Port number server listens on'),
         ('server', 'root_dir', str, '/minecraft', 'Root directory to install minecraft to on the server'),
         ('server', 'name', str, None, 'Minecraft server name'),
         ('server', 'world_name', str, None, 'Minecraft world name (should match server.properties)'),
