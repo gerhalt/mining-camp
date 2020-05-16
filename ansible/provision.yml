@@ -95,10 +95,11 @@
   - name: "Download cli53"
     get_url:
       url: https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64
-      dest: cli53
+      dest: ./cli53
       mode: '0755'
 
   - name: "Register the instance IP via Route53"
+    when: hostname is defined and hostname | length > 0
     shell: |
       ./cli53 rrcreate --replace {{hostname}} "@ 300 A $(ec2metadata --public-ipv4)"
 
