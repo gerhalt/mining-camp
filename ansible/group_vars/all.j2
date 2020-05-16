@@ -8,8 +8,12 @@ aws_region: {{ aws['region'] }}
 # AWS instance type, like "m2.xlarge"
 aws_instance_type: {{ aws['instance_type'] }}
 
+# Elastic IP to be associated with your instance, like
+# "eipalloc-0a83fcd026e2d1d2d"
+aws_eip_alloc_id: {{ aws['eip_alloc_id'] }}
 
-# Provisioning & Setup
+
+# Server
 # Install directory
 minecraft_dir: {{ server['root_dir'] }}
 
@@ -21,6 +25,9 @@ s3_bucket: {{ aws['s3_bucket'] }}
 
 # Server name, like "daftcyborg"
 server_name: {{ server['name'] }}
+
+# Server hostname, like "minecraft.daftcyb.org"
+server_hostname: {{ server['hostname'] }}
 
 # Base archive, like "daftcyborg-server-8-20-2017.tgz"
 server_file: {{ server['base'] }}
