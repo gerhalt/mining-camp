@@ -2,10 +2,10 @@ variable "minecraft" {
   type = map
 
   default = {
-    port        = {{ server['port'] | default(25565) }}
-    bucket_name = "{{ aws['s3_bucket'] }}"
-    server_name = "{{ server['name'] }}"
-    hostname    = "{{ server['hostname'] }}"
+    port         = {{ server['port'] | default(25565) }}
+    bucket_name  = "{{ aws['s3_bucket'] }}"
+    server_name  = "{{ server['name'] }}"
+    hostname     = "{{ server['hostname'] }}"
   }
 }
 
@@ -27,4 +27,9 @@ variable "aws_availability_zone" {
 variable "aws_instance_type" {
   description = "Spot instance type to launch."
   default     = "{{ aws['instance_type'] }}"
+}
+
+variable "aws_eip_alloc_id" {
+  description = "Elastic IP allocation ID to associate with the server. (DEPRECATED)"
+  default     = "{{ aws['eip_alloc_id'] }}"
 }

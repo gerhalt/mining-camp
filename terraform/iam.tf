@@ -77,5 +77,24 @@ resource "aws_iam_role_policy" "minecraft-r53" {
 EOF
 }
 
+# Elastic-IP-related access, if in use
+resource "aws_iam_role_policy" "minecraft-eip-association" {
+  name   = "minecraft-eip-association"
+  role   = aws_iam_role.minecraft.id
 
+  # Create an instance of this only if the server hostname is defined
+  count = var.minecraft["eip_alloc_id"] != "" ? 1 : 0
 
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ec2:AssociateAddress",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
