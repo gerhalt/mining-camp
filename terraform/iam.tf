@@ -83,7 +83,7 @@ resource "aws_iam_role_policy" "minecraft-eip-association" {
   role   = aws_iam_role.minecraft.id
 
   # Create an instance of this only if the server hostname is defined
-  count = var.minecraft["eip_alloc_id"] != "" ? 1 : 0
+  count = var.aws_eip_alloc_id != "" ? 1 : 0
 
   policy = <<EOF
 {
