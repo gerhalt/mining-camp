@@ -5,6 +5,7 @@ variable "minecraft" {
     port        = {{ server['port'] | default(25565) }}
     bucket_name = "{{ aws['s3_bucket'] }}"
     server_name = "{{ server['name'] }}"
+    hostname    = "{{ server['hostname'] }}"
   }
 }
 

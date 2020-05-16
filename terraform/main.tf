@@ -101,7 +101,11 @@ data "aws_ami" "ubuntu" {
 
 # Route53
 resource "aws_route53_zone" "minecraft" {
-    name = "minecraft.daftcyb.org"
+    # Create an instance of this only if the server hostname is defined
+    count = var.minecraft["hostname"] != "" ? 1 : 0
+
+    name = var.minecraft["hostname"]
+    force_destroy = true
 }
 
 
