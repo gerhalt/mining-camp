@@ -1,3 +1,5 @@
+# Bundles the local Ansible configuration and pushes the archive to S3
+
 - name: "Persist local Ansible to S3"
   hosts: localhost
   gather_facts: false

@@ -1,4 +1,4 @@
-- name: "Localhost Provisioning"
+- name: "Local Provisioning"
   hosts: localhost
 
   tasks:
