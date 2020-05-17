@@ -123,11 +123,11 @@ aws_secret_access_key = <your_secret_key_here>
 
 To tell Ansible to use this profile, you can do one of the following:
 
-1. `export AWS_PROFILE=minecraft` in the shell you'll be running the Ansible
+* `export AWS_PROFILE=minecraft` in the shell you'll be running the Ansible
     commands in.
-2. Prefix each command with `AWS_PROFILE=minecraft`, which sets the environment
+* Prefix each command with `AWS_PROFILE=minecraft`, which sets the environment
     for that particular invocation.
-3. Change the `minecraft` section title to `default` (or duplicate it). This
+* Change the `minecraft` section title to `default` (or duplicate it). This
     will cause those credentials to be tried by default.
 
 ==== SSH Key Pair
@@ -148,20 +148,19 @@ allowing SSH access to Ansible (and for troubleshooting!)
 
 You'll need to _choose one of the following methods_ to access your instance:
 
-1. Use the public IP automatically assigned to your spot instance. This
-    requires no setup on your part, but the address will be different each time
-    the instance is started. The IP of your instance can be found under
-    _EC2 → Instances_ in the "IPv4 Public IP" column.
-2. **DEPRECATED** Use an elastic IP. This associates a known IP with your
-    instance each time it's started. Setup for this must be done by hand.
-    Elastic IPs also incur a cost while they're not in use, as well as
-    additional charges if you make too many assignments per month.
-3. Use Route 53 to host an owned domain or subdomain, pointed at your server.
-    Requires a domain and minor manual setup with your registrar.
+* Use the public IP automatically assigned to your spot instance. This
+  requires no setup on your part, but the address will be different each time
+  the instance is started. The IP of your instance can be found under
+  _EC2 → Instances_ in the "IPv4 Public IP" column.
+* Use an elastic IP. This associates a known IP with your
+  instance each time it's started. Setup for this must be done by hand.
+  Elastic IPs also incur a cost while they're not in use, as well as
+  additional charges if you make too many assignments per month.
+  **(DEPRECATED)**
+* Use Route 53 to host an owned domain or subdomain, pointed at your server.
+  Requires a domain and minor manual setup with your registrar.
 
-===== via Elastic IP
-
-**DEPRECATED**
+===== via Elastic IP (DEPRECATED)
 
 You'll need to create an elastic IP for association with your instance,
 providing a convenient public-facing IP. In the AWS console, do the following:
