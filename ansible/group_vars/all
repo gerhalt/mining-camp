@@ -27,7 +27,7 @@ s3_bucket: nmc-backup-bucket
 server_name: nerdhouse
 
 # Base archive, like "daftcyborg-server-8-20-2017.tgz"
-server_file: nerdhouse-minecraft-05-14-2020.tar.gz
+server_file: nerdhouse-minecraft-05-16-2020.tar.gz
 
 # World name, like "grandworld". Should match the name defined in
 # server.properties.
