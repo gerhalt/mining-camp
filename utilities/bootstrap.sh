@@ -16,7 +16,7 @@ cd $1
 session_name=minecraft
 tmux new-session -s ${session_name} -d
 pane=${session_name}:0.0
-tmux send-keys -t "$pane" 'java -Xms2G -Xmx12G -jar /minecraft/nerdhouse/minecraft_server.jar' C-m
+tmux send-keys -t "$pane" 'java -Xms2G -Xmx12G -jar /minecraft/nerdhouse/fabric-server-launch.jar nogui' C-m
 
 echo "Minecraft server launched, attach to it by running:"
 echo "tmux attach-session -t ${session_name}"
