@@ -185,7 +185,7 @@ Proceed through the rest of the setup, specifying a server hostname. Once
 you've applied your Terraform config, return to do this section and do the
 following:
 
-1. Enter the AWS console, and navigate to the Route53 service.
+1. Enter the AWS console, and navigate to the _Route 53_ service.
 2. Select the hosted zone for the hostname you chose.
 3. You should see an `NS` record with four hosts.
 4. Add a corresponding `NS` record to your domain for each host. I leave this
@@ -289,7 +289,7 @@ $ ./utilities/setup.py
 This guides you through each required setting, offering default values if
 available. It then takes your input and renders out `terraform/variables.tf`
 and `ansible/group_vars/all` from corresponding `*.j2` templates. If you like,
-you can populate those templates by hand.
+you can populate those templates by hand as well.
 
 * It's important you choose the right _aws_availability_zone_, since spot
   prices can vary substantially from zone to zone.
