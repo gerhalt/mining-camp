@@ -112,6 +112,12 @@
       name: "minecraft backup monitor"
       minute: "*/5"
       job: "{{minecraft_dir}}/mining-camp/utilities/prospector.py backup"
+  
+  - name: "Add restart script to crontab"
+    cron: 
+      name: "minecraft restart"
+      minute: "0 2 * * *"
+      job: "{{minecraft_dir}}/mining-camp/utilities/minecraft-restart.sh"
 
   - name: "Start emergency shutdown monitoring script in the background"
     # In order to run a background process, we detach inputs and outputs and
