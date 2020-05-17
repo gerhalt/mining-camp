@@ -96,7 +96,7 @@ directory. Sample bash commands provided are from the root directory unless
 otherwise noted.
 
 You'll need to download and install the following requirements to get started
-(versions I've tested with are in parenthesis):
+(versions I've tested with are in parentheses):
 
 * `pip` (20.1)
 * `terraform` (0.12.24)
@@ -105,8 +105,8 @@ You'll also need:
 
 * An appropriate version of the JDK/JVM to run the server locally at least once,
   allowing it to generate the necessary configuration files.
-* A fully configured AWS developer account, as you'll be connecting to it to
-  set up the required infrastructure in the next steps.
+* A fully configured AWS developer account; you'll be connecting to it to set
+  up the required infrastructure.
 
 === Configuration
 
@@ -152,13 +152,12 @@ You'll need to _choose one of the following methods_ to access your instance:
     requires no setup on your part, but the address will be different each time
     the instance is started. The IP of your instance can be found under
     _EC2 → Instances_ in the "IPv4 Public IP" column.
-2. **DEPRECATED** Use an elastic IP. This associates a set IP with your
-    instance each time it's started. Set for this must be done by hand.
+2. **DEPRECATED** Use an elastic IP. This associates a known IP with your
+    instance each time it's started. Setup for this must be done by hand.
     Elastic IPs also incur a cost while they're not in use, as well as
-    charges if you assign too many IPs per month.
-3. Use Route 53 to host an owned domain or subdomain with your server. Requires
-    an owned domain and some manual setup, but is inexpensive and the most
-    flexible. This is the ideal setup.
+    additional charges if you make too many assignments per month.
+3. Use Route 53 to host an owned domain or subdomain, pointed at your server.
+    Requires a domain and minor manual setup with your registrar.
 
 ===== via Elastic IP
 
@@ -176,23 +175,24 @@ side of the screen.
 later use during the setup.
 
 Once a server has been spun up, this elastic IP will be attached to it.
-Allocated elastic IPs are included in the price of a running instance, but
+An allocated elastic IP is included in the price of a running instance, but
 you will be billed for any unassigned EIPs by the hour. For this reason, if
 you plan to stop your Minecraft server for long periods of time, be sure to
 delete your EIPs and create new ones when you're ready to begin hosting again.
 
 ===== via Domain
 
-Proceed through the setup, specifying a server hostname. After you apply your
-Terraform config, enter the AWS console:
+Proceed through the rest of the setup, specifying a server hostname. Once
+you've applied your Terraform config, return to do this section and do the
+following:
 
-1. Navigate to the Route53 service.
-2. Choose the hosted zone for your hostname.
+1. Enter the AWS console, and navigate to the Route53 service.
+2. Select the hosted zone for the hostname you chose.
 3. You should see an `NS` record with four hosts.
 4. Add a corresponding `NS` record to your domain for each host. I leave this
-    as an exercise for the reader.
-5. Now, when your server is booted, it will automatically add a short-lived `A`
-    record pointed at your server's public IP.
+  as an exercise for the reader.
+5. Now, when your server is booted, it will automatically add an `A` record
+  with a short TTL pointed at your server's public IP.
 
 ==== Virtual Environment & Python Requirements
 
@@ -321,13 +321,12 @@ cd ansible/
 ansible bundle.yml
 ```
 
-NOTE: You'll need to repeat this step each time you change any of the settings
-on your server.
+NOTE: You'll need to repeat this step each time you adjust any server settings.
 
 
-== Spot Instance Interactions
+== Instance Interactions
 
-=== Server Launch & Provision
+=== Launch
 
 Jump to the `ansible` directory, and run the `start.yml` playbook to configure
 the instance and launch the minecraft server:
@@ -340,7 +339,7 @@ ansible-playbook start.yml
 This merely increases the size of the auto-scaling group from 0 → 1; the server
 won't be available for a few more minutes as it provisions.
 
-=== Server Shutdown
+=== Shutdown
 
 Shutting down your server is very similar, with a few extra command options
 that allow Ansible to SSH into the host and save the server state before
