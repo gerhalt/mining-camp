@@ -38,6 +38,38 @@ resource "aws_iam_role_policy" "minecraft" {
     {
       "Effect": "Allow",
       "Action": "s3:*",
+      "Resource": [
+        "${aws_s3_bucket.minecraft.arn}",
+        "${aws_s3_bucket.minecraft.arn}/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+# Route53-related access, if in use
+resource "aws_iam_role_policy" "minecraft-r53" {
+  name   = "minecraft-r53"
+  role   = aws_iam_role.minecraft.id
+
+  # Create an instance of this only if the server hostname is defined
+  count = var.minecraft["hostname"] != "" ? 1 : 0
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "route53:*",
+      "Resource": "arn:aws:route53:::hostedzone/${aws_route53_zone.minecraft[count.index].zone_id}"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListHostedZonesByName"
+      ],
       "Resource": "*"
     }
   ]
@@ -45,5 +77,24 @@ resource "aws_iam_role_policy" "minecraft" {
 EOF
 }
 
+# Elastic-IP-related access, if in use
+resource "aws_iam_role_policy" "minecraft-eip-association" {
+  name   = "minecraft-eip-association"
+  role   = aws_iam_role.minecraft.id
 
+  # Create an instance of this only if the server hostname is defined
+  count = var.aws_eip_alloc_id != "" ? 1 : 0
 
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ec2:AssociateAddress",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}

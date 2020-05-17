@@ -95,28 +95,22 @@ Start by checking out this repository, and navigating to your checkout-out
 directory. Sample bash commands provided are from the root directory unless
 otherwise noted.
 
-=== Requirements
-
-You'll need to download and install the following requirements (versions I
-build and tested with are in parenthesis):
+You'll need to download and install the following requirements to get started
+(versions I've tested with are in parentheses):
 
 * `pip` (20.1)
 * `terraform` (0.12.24)
 
-You'll need an appropriate version of the JDK/JVM to run the server locally at
-least once, allowing it to generate the necessary configuration files.
+You'll also need:
 
-You'll also need a fully configured AWS developer account, as you'll be using
-the console extensively in the next step.
+* An appropriate version of the JDK/JVM to run the server locally at least once,
+  allowing it to generate the necessary configuration files.
+* A fully configured AWS developer account; you'll be connecting to it to set
+  up the required infrastructure.
 
 === Configuration
 
-==== AWS
-
-Most of the heavy lifting in AWS is done by terraform. However, a few steps
-need to be taken before using terraform.
-
-===== Credentials
+==== Credentials
 
 You'll need your AWS credentials available for most of these operations, under
 the `minecraft` profile. `~/.aws/credentials` will look like:
@@ -127,11 +121,16 @@ aws_access_key_id = <your_access_key_here>
 aws_secret_access_key = <your_secret_key_here>
 ```
 
-If you have more than one AWS profile, you'll need to set the `AWS_PROFILE`
-environment variable with `export AWS_PROFILE=minecraft` for the `aws` commands
-below to work.
+To tell Ansible to use this profile, you can do one of the following:
 
-===== Key Pair
+* `export AWS_PROFILE=minecraft` in the shell you'll be running the Ansible
+    commands in.
+* Prefix each command with `AWS_PROFILE=minecraft`, which sets the environment
+    for that particular invocation.
+* Change the `minecraft` section title to `default` (or duplicate it). This
+    will cause those credentials to be tried by default.
+
+==== SSH Key Pair
 
 You'll need a key pair for accessing your instance. Generate a public-private
 key pair. As an example, you can do this with `ssh-keygen`:
@@ -145,7 +144,23 @@ _NETWORK & SECURITY -> Key Pairs_ page. Upload your public key, and name it
 "aws-public". The launch configuration Terraform creates includes this key,
 allowing SSH access to Ansible (and for troubleshooting!)
 
-===== Elastic IP Creation
+==== Instance Access
+
+You'll need to _choose one of the following methods_ to access your instance:
+
+* Use the public IP automatically assigned to your spot instance. This
+  requires no setup on your part, but the address will be different each time
+  the instance is started. The IP of your instance can be found under
+  _EC2 → Instances_ in the "IPv4 Public IP" column.
+* Use an elastic IP. This associates a known IP with your
+  instance each time it's started. Setup for this must be done by hand.
+  Elastic IPs also incur a cost while they're not in use, as well as
+  additional charges if you make too many assignments per month.
+  **(DEPRECATED)**
+* Use Route 53 to host an owned domain or subdomain, pointed at your server.
+  Requires a domain and minor manual setup with your registrar.
+
+===== via Elastic IP (DEPRECATED)
 
 You'll need to create an elastic IP for association with your instance,
 providing a convenient public-facing IP. In the AWS console, do the following:
@@ -158,13 +173,27 @@ side of the screen.
 5. You should see your new elastic IP in the list. Save the _Allocation ID_ for
 later use during the setup.
 
-Once a server has been spun up, this elastic IP will be attached to it. Note
-that allocated elastic IPs are included in the price of a running instance, but
-you will be billed for any un-assigned EIPs by the hour. For this reason, if
+Once a server has been spun up, this elastic IP will be attached to it.
+An allocated elastic IP is included in the price of a running instance, but
+you will be billed for any unassigned EIPs by the hour. For this reason, if
 you plan to stop your Minecraft server for long periods of time, be sure to
 delete your EIPs and create new ones when you're ready to begin hosting again.
 
-==== Virtual Environment & Requirements
+===== via Domain
+
+Proceed through the rest of the setup, specifying a server hostname. Once
+you've applied your Terraform config, return to do this section and do the
+following:
+
+1. Enter the AWS console, and navigate to the _Route 53_ service.
+2. Select the hosted zone for the hostname you chose.
+3. You should see an `NS` record with four hosts.
+4. Add a corresponding `NS` record to your domain for each host. I leave this
+  as an exercise for the reader.
+5. Now, when your server is booted, it will automatically add an `A` record
+  with a short TTL pointed at your server's public IP.
+
+==== Virtual Environment & Python Requirements
 
 Using pip, install the necessary Python 2.7 requirements. I recommend using
 https://virtualenv.pypa.io/en/stable/[virtualenv] and
@@ -260,7 +289,7 @@ $ ./utilities/setup.py
 This guides you through each required setting, offering default values if
 available. It then takes your input and renders out `terraform/variables.tf`
 and `ansible/group_vars/all` from corresponding `*.j2` templates. If you like,
-you can populate those templates by hand.
+you can populate those templates by hand as well.
 
 * It's important you choose the right _aws_availability_zone_, since spot
   prices can vary substantially from zone to zone.
@@ -280,29 +309,40 @@ terraform apply terraform/
 Once this has successfully completed, your AWS configuration is done. Unless
 you change your configuration, you won't need to run this again.
 
-== Spot Instance Interactions
+==== Ansible
 
-=== Server Launch & Provision
+The first time you do the configurations, you'll need to bundle your local
+Ansible configuration and push it to your S3 bucket, under the same directory
+as your server is stored. A provided playbook takes care of this for you:
 
+```
+cd ansible/
+ansible bundle.yml
+```
+
+NOTE: You'll need to repeat this step each time you adjust any server settings.
+
+
+== Instance Interactions
+
+=== Launch
 
 Jump to the `ansible` directory, and run the `start.yml` playbook to configure
 the instance and launch the minecraft server:
 
 ```
 cd ansible
-ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu start.yml
+ansible-playbook start.yml
 ```
 
-NOTE: If the auto-inventory script is taking too long, you can update
-`ansible/ec2.ini`'s `regions` entry with the particular AWS region you're using.
+This merely increases the size of the auto-scaling group from 0 → 1; the server
+won't be available for a few more minutes as it provisions.
 
-NOTE: If using an older version of Ansible, the Paramiko library used by
-default may run into errors when gathering facts from the remote host. If this
-happens, add `-c ssh` to the `ansible-playbook` command above.
+=== Shutdown
 
-=== Server Shutdown
-
-Shutting down your server is just as easy as starting it:
+Shutting down your server is very similar, with a few extra command options
+that allow Ansible to SSH into the host and save the server state before
+killing the box itself.
 
 ```
 cd ansible
@@ -312,6 +352,18 @@ ansible-playbook -i ec2.py --private-key=~/.ssh/aws -u ubuntu -c ssh stop.yml
 When this playbook finishes, your instance will be gone, but the state of the
 server will have been preserved and pushed to S3, ready for the next time you
 launch it.
+
+NOTE: If the auto-inventory script is taking too long, you can update
+`ansible/ec2.ini`'s `regions` entry with the particular AWS region you're using.
+
+NOTE: If using an older version of Ansible, the Paramiko library used by
+default may run into errors when gathering facts from the remote host. If this
+happens, add `-c ssh` to the `ansible-playbook` command above.
+
+== Troubleshooting
+
+Logs from the initial provision are available via the console as well as in
+`/var/log/user-data`.
 
 == Tests
 

@@ -99,8 +99,18 @@ data "aws_ami" "ubuntu" {
 }
 
 
+# Route53
+resource "aws_route53_zone" "minecraft" {
+    # Create an instance of this only if the server hostname is defined
+    count = var.minecraft["hostname"] != "" ? 1 : 0
+
+    name = var.minecraft["hostname"]
+    force_destroy = true
+}
+
+
 # Launch configuration
-# We'll use this to easy turn on and off our server without having to remake
+# We'll use this to easily turn on and off our server without having to remake
 # our entire instance configuration every time.
 resource "aws_launch_configuration" "minecraft" {
   name              = "minecraft"
@@ -115,6 +125,11 @@ resource "aws_launch_configuration" "minecraft" {
   iam_instance_profile = aws_iam_instance_profile.minecraft.name
   security_groups      = [aws_security_group.default.id]
   key_name             = "aws-public"
+
+  user_data = templatefile("${ path.module }/provision.sh", {
+      bucket_name = var.minecraft["bucket_name"],
+      server_name = var.minecraft["server_name"]
+  })
 }
 
 # Autoscaling Group

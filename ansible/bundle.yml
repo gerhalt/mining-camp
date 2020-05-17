@@ -1,0 +1,29 @@
+# Bundles the local Ansible configuration and pushes the archive to S3
+
+- name: "Persist local Ansible to S3"
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+  - name: "Create temporary directory"
+    tempfile:
+      state: directory
+    register: tempdir
+
+  - name: "Create an archive from the local Ansible configuration"
+    archive:
+      path: "../ansible"
+      dest: "{{ tempdir.path }}/ansible.tgz"
+
+  - name: "Push ansible archive to S3"
+    aws_s3:
+      bucket: "{{ s3_bucket }}"
+      object: "/{{ server_name }}/ansible.tgz"
+      src: "{{ tempdir.path }}/ansible.tgz"
+      mode: put
+
+  - name: "Remove temporary directory"
+    file:
+      path: "{{ tempdir.path }}"
+      state: absent
+    when: tempdir.path is defined

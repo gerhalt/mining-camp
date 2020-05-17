@@ -1,0 +1,126 @@
+- name: "Local Provisioning"
+  hosts: localhost
+
+  tasks:
+  - name: "Derive instance category and size from name"
+    set_fact:
+      aws_instance_category: "{{ aws_instance_type.split('.')[0] }}"
+      aws_instance_size: "{{ aws_instance_type.split('.')[1] }}"
+
+  - name: "Fetch the instance ID"
+    uri:
+      url: http://169.254.169.254/latest/meta-data/instance-id
+      return_content: true
+    register: aws_instance_id_resp
+
+  - name: "Register the instance ID from the response"
+    set_fact:
+      aws_instance_id: "{{aws_instance_id_resp.content}}"
+
+  - name: "Install prerequisites"
+    become: true
+    apt:
+      name: ["awscli", "openjdk-8-jre-headless", "python-pip", "jq"]
+      update_cache: yes
+
+  - name: "Create minecraft root directory"
+    become: true
+    file:
+      path: "{{minecraft_dir}}"
+      owner: ubuntu
+      group: ubuntu
+      state: directory
+
+  # Device mounting tasks, depending on the instance category
+  - name: "Mount NVMe device to minecraft directory"
+    when: aws_instance_category == "i3"
+    become: true
+    become_user: root
+    shell: |
+        mkfs.ext4 /dev/nvme0n1
+        mount -t ext4 /dev/nvme0n1 {{minecraft_dir}}
+        chown ubuntu:ubuntu {{minecraft_dir}}
+
+  - name: "Move mountpoint to minecraft directory"
+    when: aws_instance_category == "m2"
+    become: true
+    shell: |
+        umount /mnt
+        mount /dev/xvdb {{minecraft_dir}}
+        chown ubuntu:ubuntu {{minecraft_dir}}
+
+  - name: "Clone git repo into minecraft directory"
+    git:
+      repo: https://github.com/gerhalt/mining-camp.git
+      dest: "{{minecraft_dir}}/mining-camp"
+
+  - name: "Install Python requirements"
+    become: true
+    shell: |
+      pip install -r '{{minecraft_dir}}/mining-camp/requirements.txt'
+
+  - name: "Ensure server tarball doesn't exist"
+    file:
+      path: "{{minecraft_dir}}/{{server_file}}"
+      state: absent
+
+  - name: "Retrieve server tarball from S3"
+    aws_s3:
+      bucket: "{{s3_bucket}}"
+      object: "/{{server_name}}/{{server_file}}"
+      dest: "{{minecraft_dir}}/{{server_file}}"
+      mode: get
+
+  - name: "Extract and install server"
+    shell: |
+      cd {{minecraft_dir}}
+      tar -xzvf {{server_file}}
+
+  - name: "Render and install prospector config"
+    template:
+      src: "templates/prospector.cfg.j2"
+      dest: "{{minecraft_dir}}/prospector.cfg"
+
+  - name: "Install minecraft server config"
+    copy:
+      src: "files/server.properties"
+      dest: "{{minecraft_dir}}/{{server_name}}/server.properties"
+
+  - name: "Add backup script to crontab"
+    cron:
+      name: "minecraft backup monitor"
+      minute: "*/5"
+      job: "{{minecraft_dir}}/mining-camp/utilities/prospector.py backup"
+
+  - name: "Start emergency shutdown monitoring script in the background"
+    # In order to run a background process, we detach inputs and outputs and
+    # use nohup. This runs shutdown.sh in its daemon mode.
+    shell: |
+      nohup {{minecraft_dir}}/mining-camp/utilities/shutdown.sh {{minecraft_dir}} </dev/null >/dev/null 2>&1 &
+
+  - name: "Fetch most recent backup from S3 and install it"
+    shell: |
+      {{minecraft_dir}}/mining-camp/utilities/prospector.py fetch
+
+  # If using the old elastic IP method, we associate the IP with this instance
+  - name: "Associate elastic IP"
+    when: aws_eip_alloc_id is defined and aws_eip_alloc_id | length > 0
+    shell: |
+      aws ec2 associate-address --region {{aws_region}} --instance-id {{aws_instance_id}} --allocation-id {{aws_eip_alloc_id}}
+
+  # If hosted zones, we add an A record for this instance
+  - name: "Download cli53"
+    when: hostname is defined and hostname | length > 0
+    get_url:
+      url: https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64
+      dest: ./cli53
+      mode: '0755'
+
+  - name: "Register the instance IP via Route53"
+    when: hostname is defined and hostname | length > 0
+    shell: |
+      ./cli53 rrcreate --replace {{hostname}} "@ 300 A $(ec2metadata --public-ipv4)"
+
+  - name: "Start server bootstrap script"
+    shell: |
+      {{minecraft_dir}}/mining-camp/utilities/bootstrap.sh {{minecraft_dir}}/{{server_name}}
