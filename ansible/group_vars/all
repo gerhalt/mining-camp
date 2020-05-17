@@ -21,7 +21,7 @@ minecraft_eip_alloc_id: eipalloc-0a303ae88920e457a
 minecraft_tag: minecraft
 
 # S3 bucket to use, like "josh-minecraft"
-s3_bucket: nmc-bucket
+s3_bucket: nmc-backup-bucket
 
 # Server name, like "daftcyborg"
 server_name: nerdhouse

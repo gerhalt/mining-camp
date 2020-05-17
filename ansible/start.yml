@@ -72,7 +72,7 @@
 
   - name: "Clone git repo into minecraft directory"
     git:
-      repo: https://github.com/gerhalt/mining-camp.git
+      repo: https://github.com/tmoon8730/mining-camp.git
       dest: "{{minecraft_dir}}/mining-camp"
 
   - name: "Install Python requirements"
