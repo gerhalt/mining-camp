@@ -119,22 +119,22 @@
 
   # If using the old elastic IP method, we associate the IP with this instance
   - name: "Associate elastic IP"
-    when: aws_eip_alloc_id is defined and aws_eip_alloc_id | length > 0
+    when: aws_eip_alloc_id is defined and aws_eip_alloc_id and aws_eip_alloc_id | length > 0
     shell: |
       aws ec2 associate-address --region {{aws_region}} --instance-id {{aws_instance_id}} --allocation-id {{aws_eip_alloc_id}}
 
   # If hosted zones, we add an A record for this instance
   - name: "Download cli53"
-    when: hostname is defined and hostname | length > 0
+    when: server_hostname is defined and server_hostname and server_hostname | length > 0
     get_url:
       url: https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64
       dest: ./cli53
       mode: '0755'
 
   - name: "Register the instance IP via Route53"
-    when: hostname is defined and hostname | length > 0
+    when: server_hostname is defined and server_hostname and server_hostname | length > 0
     shell: |
-      ./cli53 rrcreate --replace {{hostname}} "@ 300 A $(ec2metadata --public-ipv4)"
+      ./cli53 rrcreate --replace {{server_hostname}} "@ 300 A $(ec2metadata --public-ipv4)"
 
   - name: "Start server bootstrap script"
     shell: |
