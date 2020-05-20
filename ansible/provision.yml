@@ -7,6 +7,20 @@
       aws_instance_category: "{{ aws_instance_type.split('.')[0] }}"
       aws_instance_size: "{{ aws_instance_type.split('.')[1] }}"
 
+      # e.g. "m5" in "m5ad"
+      aws_instance_base:
+        "{{ aws_instance_type
+            | regex_search('^\\S+[0-9]+', ignorecase=True)
+            | lower }}"
+
+  - name: "Determine instance modifiers"
+    set_fact:
+      # List of suffixes after the base, like ["d", "n"] in "md5n". May be empty.
+      aws_instance_mods:
+        "{{ aws_instance_category.split(aws_instance_base)[1]
+            | regex_findall('(en|[adn])')
+            | lower }}"
+
   - name: "Fetch the instance ID"
     uri:
       url: http://169.254.169.254/latest/meta-data/instance-id
@@ -32,8 +46,9 @@
       state: directory
 
   # Device mounting tasks, depending on the instance category
+  # TODO: Add EBS support, if desired
   - name: "Mount NVMe device to minecraft directory"
-    when: aws_instance_category == "i3"
+    when: aws_instance_base in ["i3"] or "d" in aws_instance_mods
     become: true
     become_user: root
     shell: |
@@ -41,8 +56,8 @@
         mount -t ext4 /dev/nvme0n1 {{minecraft_dir}}
         chown ubuntu:ubuntu {{minecraft_dir}}
 
-  - name: "Move mountpoint to minecraft directory"
-    when: aws_instance_category == "m2"
+  - name: "Mount SSD to minecraft directory"
+    when: aws_instance_base in ["x1", "f1", "d2", "h1"] or aws_instance_base == "m2"
     become: true
     shell: |
         umount /mnt
@@ -104,22 +119,22 @@
 
   # If using the old elastic IP method, we associate the IP with this instance
   - name: "Associate elastic IP"
-    when: aws_eip_alloc_id is defined and aws_eip_alloc_id | length > 0
+    when: aws_eip_alloc_id is defined and aws_eip_alloc_id and aws_eip_alloc_id | length > 0
     shell: |
       aws ec2 associate-address --region {{aws_region}} --instance-id {{aws_instance_id}} --allocation-id {{aws_eip_alloc_id}}
 
   # If hosted zones, we add an A record for this instance
   - name: "Download cli53"
-    when: hostname is defined and hostname | length > 0
+    when: server_hostname is defined and server_hostname and server_hostname | length > 0
     get_url:
       url: https://github.com/barnybug/cli53/releases/download/0.8.17/cli53-linux-amd64
       dest: ./cli53
       mode: '0755'
 
   - name: "Register the instance IP via Route53"
-    when: hostname is defined and hostname | length > 0
+    when: server_hostname is defined and server_hostname and server_hostname | length > 0
     shell: |
-      ./cli53 rrcreate --replace {{hostname}} "@ 300 A $(ec2metadata --public-ipv4)"
+      ./cli53 rrcreate --replace {{server_hostname}} "@ 300 A $(ec2metadata --public-ipv4)"
 
   - name: "Start server bootstrap script"
     shell: |
