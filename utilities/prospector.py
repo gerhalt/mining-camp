@@ -12,9 +12,11 @@ import sys
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser
 from datetime import datetime, timedelta
+from tempfile import mkdtemp
 from zipfile import ZipFile, BadZipfile
 
 import boto3
+
 
 # Logging
 LOG_FORMAT = u'%(asctime)s [%(levelname)s] %(message)s'
@@ -26,17 +28,8 @@ formatter = logging.Formatter(LOG_FORMAT)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-# Constants
-
 # a list of regexes matching file names, and the date format string that can
 # be matched against the first regex group.
-BACKUP_FORMATS = [
-    # Aroma backup format
-    (re.compile('\w+-\w+-(\d{4}-\d{2}-\d{2}--\d{2}-\d{2}).zip'), '%Y-%m-%d--%H-%M'),
-    # FTB Utilities backup format
-    (re.compile('(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).zip'), '%Y-%m-%d-%H-%M-%S')
-]
-
 S3_BACKUP_RE = re.compile('\w+-(\d{8}T\d{6}).zip')
 S3_BACKUP_DATE_FMT = '%Y%m%dT%H%M%S'
 
@@ -54,6 +47,17 @@ class Prospector(object):
         self.s3_bucket = s3_bucket
         self.client = boto3.client('s3')
 
+    @property
+    def s3_backup_prefix(self):
+        return '{}/backups/{}'.format(self.server_name, self.world_name)
+
+    @property
+    def server_path(self):
+        return os.path.join(self.server_root_dir, self.server_name)
+
+    @property
+    def world_path(self):
+        return os.path.join(self.server_root_dir, self.server_name, self.world_name)
 
     def fetch_most_recent_backup(self):
         """
@@ -69,9 +73,7 @@ class Prospector(object):
                                                                           key,
                                                                           tmp_path))
 
-            self.client.download_file(self.s3_bucket,
-                                      key,
-                                      tmp_path)
+            self.client.download_file(self.s3_bucket, key, tmp_path)
 
             try:
                 with ZipFile(tmp_path, 'r') as z:
@@ -85,53 +87,15 @@ class Prospector(object):
             # Cleanup
             os.remove(tmp_path)
         else:
-            logger.warning("No backups found!")
+            logger.warning("No backups found in S3")
 
-
-    def push_most_recent_backup(self, zipfile=None):
+    def upload_backup(self, zipfile):
         """
-        Uploads `zipfile` to s3 as a named backup, or checks for the most
-        recent backup in the server's backup directory and pushes it to S3 if
-        it hasn't already been uploaded. If a `zipfile` is used, the last
-        modified time of the archive is used when naming the backup.
+        Uploads `zipfile` to S3, stamping it using the current time. The
+        previous most-recent backup in S3, if one exists, is re-tagged as old.
         """
-        if not zipfile:
-            # Only search for a backup if one isn't specified
-
-            latest_path = None
-            latest_stamp = None
-            for root, dirs, files in os.walk(self.local_backup_path):
-                # Look into the <world_name> subdirectory for backups too, if
-                # such a directory exists. Do this by editing the list of
-                # directories in-place.
-                if self.world_name in dirs and root == self.local_backup_path:
-                    for i, d in reversed(list(enumerate(dirs))):
-                        if d != self.world_name:
-                            del dirs[i]
-
-                # Check each file to determine whether it matches one of our
-                # known backup formats.
-                for f in files:
-                    # Check the filename against our known backup formats
-                    result = None
-                    for file_re, date_fmt in BACKUP_FORMATS:
-                        result = file_re.match(f)
-                        if result:
-                            break
-
-                    if result:
-                        backup_time = datetime.strptime(result.group(1),
-                                                        date_fmt)
-                        if not latest_stamp or latest_stamp < backup_time:
-                            latest_stamp = backup_time
-                            latest_path = os.path.join(root, f)
-
-            if not latest_path:
-                logger.info("No periodic backups found")
-                return
-        else:
-            latest_path = zipfile
-            latest_stamp = datetime.fromtimestamp(os.path.getmtime(zipfile))
+        latest_path = zipfile
+        latest_stamp = datetime.utcnow()
 
         # Whether or not a backup has been explicitly set or we're comparing
         # periodic backups, we still do this lookup so we can retag the old
@@ -143,40 +107,67 @@ class Prospector(object):
             latest_s3_stamp = datetime.strptime(result.group(1),
                                                 S3_BACKUP_DATE_FMT)
 
-        if zipfile or not latest_s3_stamp or latest_stamp > latest_s3_stamp:
-            new_s3_key = self.s3_backup_key(latest_stamp)
-            logger.info("Uploading backup file {} to s3://{}/{}".format(latest_path,
-                                                                        self.s3_bucket,
-                                                                        new_s3_key))
+        new_s3_key = self.s3_backup_key(latest_stamp)
+        logger.info("Uploading backup file {} to s3://{}/{}".format(latest_path,
+                                                                    self.s3_bucket,
+                                                                    new_s3_key))
 
-            self.client.upload_file(latest_path, self.s3_bucket, new_s3_key)
-            self.tag_s3_object(new_s3_key, backup='new')
+        self.client.upload_file(latest_path, self.s3_bucket, new_s3_key)
+        self.tag_s3_object(new_s3_key, backup='new')
 
-            if latest_s3_stamp:
-                # If we found an older backup, retag it since it's no longer
-                # current
-                self.tag_s3_object(latest_s3_key, backup='old')
-
+        if latest_s3_stamp:
+            # If we found an older backup, retag it since it's no longer
+            # current
+            self.tag_s3_object(latest_s3_key, backup='old')
 
     def push_current_backup(self):
         """
         Builds a backup archive from the server's active world and pushes it to
-        S3. The server should not be running while this is executing.
+        S3. The server must not be writing to disk while this is executing.
         """
-        key = self.s3_backup_key(datetime.now())
-        tmp_path = os.path.join('/tmp', os.path.basename(key))
-        logger.info("Archiving backup of current state of '{}' world to {}".format(self.world_name,
-                                                                                   tmp_path))
+        backup_path = self.create_current_backup()
+        if not backup_path:
+            logger.error('Unable to create backup')
+        else:
+            self.upload_backup(backup_path)
+            shutil.rmtree(os.path.dirname(backup_path))
 
-        # Strip the suffix off tmp_path, because `shutil.make_archive` adds its
-        # own when it creates the file.
-        base_path = os.path.join(self.server_root_dir, self.server_name)
-        shutil.make_archive(tmp_path[:-4], 'zip', base_path, self.world_name)
+    def create_current_backup(self):
+        """
+        Creates a backup archive and returns the path.
 
-        # Create a key for the archive in S3 and upload it
-        self.push_most_recent_backup(zipfile=tmp_path)
-        os.remove(tmp_path)
+        NOTE: Caller is responsible for removing the file and the directory
+              when finished.
+        """
+        backup_path = os.path.join(
+            mkdtemp(),
+            os.path.basename(self.s3_backup_key(datetime.utcnow()))
+        )
 
+        with ZipFile(backup_path, 'w') as z:
+           for folder, dirnames, files in os.walk(self.server_path):
+               # If we're at the top (server-level), exclude everything except
+               # the world directory
+               if folder == self.server_path:
+                   if self.world_name not in dirnames:
+                       logger.error("No world directory '{}' present in server directory {}".format(self.world_name, self.server_path))
+                       os.rmdir(os.path.dirname(backup_path))
+                       return
+                   else:
+                       # In-place removal of all directories beyond the first,
+                       # which is set to the world directory name
+                       for i in range(len(dirnames) - 1, 0, -1):
+                           dirnames.pop(i)
+                       dirnames[0] = self.world_name
+                       continue  # Don't grab any files from the base directory
+
+               archive_dir = folder.replace(self.server_path, '')
+               for file_name in files:
+                   file_path = os.path.join(folder, file_name)
+                   z.write(file_path, os.path.join(archive_dir, file_name))
+                   logger.debug('Writing {} to archive as {}'.format(file_path, os.path.join(archive_dir, file_name)))
+
+        return backup_path
 
     def get_most_recent_backup_key(self):
         """
@@ -191,11 +182,25 @@ class Prospector(object):
 
         # To ensure that the filename matches our format, iterate through our
         # sorted list until we find a filename match.
+        backup_key = None
         for b in backups:
             if S3_BACKUP_RE.match(os.path.basename(b)):
-                return b
-        return None
+                backup_key = b
+                break
 
+        return backup_key
+
+    @staticmethod
+    def backup_time_from_key(backup_key):
+        """
+        Given a backup filename or S3 key, returns a `datetime` instance for
+        that key's time.
+        """
+        fname = os.path.basename(backup_key)
+        if fname.endswith('.zip'):
+            fname = fname[:-4]
+        date = fname.split('-')[1]
+        return datetime.strptime(date, S3_BACKUP_DATE_FMT)
 
     def tag_s3_object(self, key, **kwargs):
         """
@@ -209,7 +214,6 @@ class Prospector(object):
             Tagging={ 'TagSet': tags }
         )
 
-
     def s3_backup_key(self, date):
         """
         Given a `date` datetime instance, returns an s3 key for that backup,
@@ -218,28 +222,18 @@ class Prospector(object):
         return '{}-{}.zip'.format(self.s3_backup_prefix,
                                   date.strftime(S3_BACKUP_DATE_FMT))
 
-    @property
-    def s3_backup_prefix(self):
-        return '{}/backups/{}'.format(self.server_name, self.world_name)
-
-    @property
-    def local_backup_path(self):
-        return os.path.join(self.server_root_dir,
-                            self.server_name,
-                            'backups')
-
 
 def main():
-    FETCH, BACKUP, BACKUP_CURRENT = 'fetch', 'backup', 'backup_current'
+    FETCH, BACKUP = 'fetch', 'backup'
 
     parser = ArgumentParser(
-        description="Utilities for interacting with an S3 bucket storing " \
-                    "Minecraft servers and backups.")
+        description="Utilities for interacting with Minecraft backups stored "
+                    "in an S3 bucket.")
     parser.add_argument('action', choices=(FETCH, BACKUP, BACKUP_CURRENT),
-        help="The action to take: 'fetch' gets the most recent backup from " \
-             "S3 and installs it, 'backup' pushes the most recent backup to " \
-             "S3, and 'backup_current' creates a fresh backup from the " \
-             "current world directory and pushes it (server should be off).")
+        help="The action to take: 'fetch' gets the most recent backup from "
+             "S3 and installs it, 'backup' creates an archive from the world "
+             "directory and pushes it to S3 (server should not be writing to "
+             "disk during creation).")
     parser.add_argument('--cfg', nargs=1, default=['/minecraft/prospector.cfg'],
         help="Config file to read settings from.")
     parser.add_argument('--log', nargs=1, default=['/minecraft/prospector.log'],
@@ -274,8 +268,6 @@ def main():
     if args.action == FETCH:
         p.fetch_most_recent_backup()
     elif args.action == BACKUP:
-        p.push_most_recent_backup()
-    elif args.action == BACKUP_CURRENT:
         p.push_current_backup()
 
 
