@@ -101,9 +101,11 @@ class Prospector(object):
         # If a key isn't returned, there's nothing to do
         if key:
             tmp_path = os.path.join('/tmp', os.path.basename(key))
-            logger.info("Downloading backup from s3://{}/{} to {}".format(self.s3_bucket,
-                                                                          key,
-                                                                          tmp_path))
+            logger.info("Downloading backup from s3://{}/{} to {}".format(
+                self.s3_bucket,
+                key,
+                tmp_path
+            ))
 
             self.client.download_file(self.s3_bucket, key, tmp_path)
 

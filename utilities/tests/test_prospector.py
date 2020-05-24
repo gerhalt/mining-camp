@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import tempfile
+from ConfigParser import RawConfigParser
 from datetime import datetime, timedelta
 from unittest import TestCase
 from shutil import rmtree
@@ -13,7 +14,7 @@ import sure
 from freezegun import freeze_time
 from moto import mock_s3
 
-from utilities.prospector import Prospector
+from utilities.prospector import main as prospector_main, Prospector
 
 
 S3_DATE_FMT = '%Y%m%dT%H%M%S'
@@ -96,6 +97,83 @@ class TestProspector(TestCase):
         p.server_path.should.equal(os.path.join(self.temp_dir, 'my_server'))
         p.world_path.should.equal(os.path.join(self.temp_dir, 'my_server', 'my_world'))
 
+    def test_script_invocation_backup(self):
+        old_sys_argv = sys.argv
+
+        # generate a config
+        config = RawConfigParser()
+        config.add_section('main')
+        config.set('main', 's3_bucket', 'my_bucket')
+        config.set('main', 'server_name', 'my_server')
+        config.set('main', 'server_root_dir', self.temp_dir)
+        config.set('main', 'world_name', 'my_world')
+
+        # and write it out to file
+        config_path = os.path.join(self.temp_dir, 'prospector.cfg')
+        with open(config_path, 'wb') as f:
+            config.write(f)
+
+        # and invoking the backup action shouldn't crash
+        log_path = os.path.join(self.temp_dir, 'prospector.log')
+        sys.argv = './utilities/prospector.py backup --cfg {} --log {}'.format(config_path, log_path).split(' ')
+        prospector_main()
+
+        # and should result in a backup in S3
+        response = self.s3_client.list_objects_v2(Bucket=self.cfg['s3_bucket'])
+        response['KeyCount'].should.equal(1)
+
+        # Lastly, restore the original arguments
+        sys.argv = old_sys_argv
+
+    def test_script_invocation_fetch(self):
+        old_sys_argv = sys.argv
+
+        # generate a config
+        config = RawConfigParser()
+        config.add_section('main')
+        config.set('main', 's3_bucket', 'my_bucket')
+        config.set('main', 'server_name', 'my_server')
+        config.set('main', 'server_root_dir', self.temp_dir)
+        config.set('main', 'world_name', 'my_world')
+
+        # and write it out to file
+        config_path = os.path.join(self.temp_dir, 'prospector.cfg')
+        with open(config_path, 'wb') as f:
+            config.write(f)
+
+        # and if a backup is pushed to S3
+        log_path = os.path.join(self.temp_dir, 'prospector.log')
+        sys.argv = './utilities/prospector.py backup --cfg {} --log {}'.format(config_path, log_path).split(' ')
+        prospector_main()
+
+        # and the world directory is blown away
+        shutil.rmtree(self.world_path)
+        os.path.exists(self.world_path).should.be.false
+
+        # and the most recent backup is fetched
+        log_path = os.path.join(self.temp_dir, 'prospector.log')
+        sys.argv = './utilities/prospector.py fetch --cfg {} --log {}'.format(config_path, log_path).split(' ')
+        prospector_main()
+
+        # the world directory should be repopulated
+        len(os.listdir(self.world_path)).shouldnt.equal(0)
+
+        # Lastly, restore the original arguments
+        sys.argv = old_sys_argv
+
+    def test_script_invocation_unknown_action(self):
+        old_sys_argv = sys.argv
+
+        # when the script is run with an unknown action, it should exit
+        # immediately
+        with self.assertRaises(SystemExit):
+            log_path = os.path.join(self.temp_dir, 'prospector.log')
+            sys.argv = './utilities/prospector.py something_wrong'.split(' ')
+            prospector_main()
+
+        # Lastly, restore the original arguments
+        sys.argv = old_sys_argv
+
     def test_backup_creation(self):
         # given a Prospector created with the base config
         p = Prospector(**self.cfg)
@@ -145,12 +223,12 @@ class TestProspector(TestCase):
 
         # and, when converted backwards to a datetime
         key_dt = p.backup_time_from_key(key)
-        
+
         # it should equal the original datetime
         key_dt.should.equal(dt)
 
     @freeze_time("2020-03-04 02:34:56")
-    def test_push_current_backup(self): 
+    def test_push_current_backup(self):
         # given a Prospector created with the base config
         p = Prospector(**self.cfg)
 
@@ -159,7 +237,7 @@ class TestProspector(TestCase):
         response['KeyCount'].should.equal(0)
 
         # but when we push a current backup
-        p.push_current_backup() 
+        p.push_current_backup()
 
         # there now should be a backup present in S3
         response = self.s3_client.list_objects_v2(Bucket=self.cfg['s3_bucket'])
@@ -184,10 +262,10 @@ class TestProspector(TestCase):
         backup_times = []
         for i in range(0, 5):
             backup_times.append(time)
-            
+
             with freeze_time(time):
                 p.upload_backup(mock_archive)
-            
+
             # shift the clock ahead for the next backup
             time += timedelta(hours=13)
 
@@ -208,7 +286,7 @@ class TestProspector(TestCase):
             tags = {t['Key']: t['Value'] for t in response['TagSet']}
 
             # check them against the backup times
-            bt = p.backup_time_from_key(item['Key']) 
+            bt = p.backup_time_from_key(item['Key'])
             if bt in backup_times[:-1]:
                 tags.should.equal({'backup': 'old'})
             elif bt == backup_times[-1]:
@@ -230,10 +308,10 @@ class TestProspector(TestCase):
         backup_times = []
         for i in range(0, 5):
             backup_times.append(time)
-            
+
             with freeze_time(time):
                 p.upload_backup(mock_archive)
-            
+
             # shift the clock ahead for the next backup
             time += timedelta(hours=13)
 
@@ -257,7 +335,7 @@ class TestProspector(TestCase):
             os.makedirs(self.world_path)
 
             self.populate_mock_server()
-            
+
             with freeze_time(time):
                 p.push_current_backup()
 
