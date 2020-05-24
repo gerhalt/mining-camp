@@ -59,6 +59,38 @@ class Prospector(object):
     def world_path(self):
         return os.path.join(self.server_root_dir, self.server_name, self.world_name)
 
+    @staticmethod
+    def backup_time_from_key(backup_key):
+        """
+        Given a backup filename or S3 key, returns a `datetime` instance for
+        that key's time.
+        """
+        fname = os.path.basename(backup_key)
+        if fname.endswith('.zip'):
+            fname = fname[:-4]
+        date = fname.split('-')[1]
+        return datetime.strptime(date, S3_BACKUP_DATE_FMT)
+
+    def tag_s3_object(self, key, **kwargs):
+        """
+        Tag an s3 object identified by `key` with the key-value pairs in
+        `kwargs`.
+        """
+        tags = [{ 'Key': k, 'Value': v } for k, v in kwargs.iteritems()]
+        self.client.put_object_tagging(
+            Bucket=self.s3_bucket,
+            Key=key,
+            Tagging={ 'TagSet': tags }
+        )
+
+    def s3_backup_key(self, date):
+        """
+        Given a `date` datetime instance, returns an s3 key for that backup,
+        including the .zip suffix.
+        """
+        return '{}-{}.zip'.format(self.s3_backup_prefix,
+                                  date.strftime(S3_BACKUP_DATE_FMT))
+
     def fetch_most_recent_backup(self):
         """
         Fetches the most recent backup in S3 and returns the local temporary
@@ -190,38 +222,6 @@ class Prospector(object):
 
         return backup_key
 
-    @staticmethod
-    def backup_time_from_key(backup_key):
-        """
-        Given a backup filename or S3 key, returns a `datetime` instance for
-        that key's time.
-        """
-        fname = os.path.basename(backup_key)
-        if fname.endswith('.zip'):
-            fname = fname[:-4]
-        date = fname.split('-')[1]
-        return datetime.strptime(date, S3_BACKUP_DATE_FMT)
-
-    def tag_s3_object(self, key, **kwargs):
-        """
-        Tag an s3 object identified by `key` with the key-value pairs in
-        `kwargs`.
-        """
-        tags = [{ 'Key': k, 'Value': v } for k, v in kwargs.iteritems()]
-        self.client.put_object_tagging(
-            Bucket=self.s3_bucket,
-            Key=key,
-            Tagging={ 'TagSet': tags }
-        )
-
-    def s3_backup_key(self, date):
-        """
-        Given a `date` datetime instance, returns an s3 key for that backup,
-        including the .zip suffix.
-        """
-        return '{}-{}.zip'.format(self.s3_backup_prefix,
-                                  date.strftime(S3_BACKUP_DATE_FMT))
-
 
 def main():
     FETCH, BACKUP = 'fetch', 'backup'
@@ -229,7 +229,7 @@ def main():
     parser = ArgumentParser(
         description="Utilities for interacting with Minecraft backups stored "
                     "in an S3 bucket.")
-    parser.add_argument('action', choices=(FETCH, BACKUP, BACKUP_CURRENT),
+    parser.add_argument('action', choices=(FETCH, BACKUP),
         help="The action to take: 'fetch' gets the most recent backup from "
              "S3 and installs it, 'backup' creates an archive from the world "
              "directory and pushes it to S3 (server should not be writing to "
