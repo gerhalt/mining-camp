@@ -10,9 +10,12 @@
       state: directory
     register: tempdir
 
-  - name: "Create an archive from the local Ansible configuration"
+  - name: "Create an archive from the local Ansible + utilities"
     archive:
-      path: "../ansible"
+      path:
+      - "../ansible"
+      - "../utilities"
+      - "../requirements.txt"
       dest: "{{ tempdir.path }}/ansible.tgz"
 
   - name: "Push ansible archive to S3"

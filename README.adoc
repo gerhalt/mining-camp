@@ -228,7 +228,7 @@ $ sh ./FTBInstall.sh
 $ # Create and populate the bootstrap script - mining camp will use this to
 $ # launch your server. Copy from _utitilies/_, and update with memory limits
 $ # and the `.jar` you're using.
-$ cp <mining-camp-checkout-dir>/utilities/server-start.sh .
+$ cp <repo-checkout-directory>/utilities/server-start.sh .
 
 $ # Launch the server. You'll need to do this twice, once to create the
 $ # eula.txt and once to generate the base
