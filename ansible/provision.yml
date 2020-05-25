@@ -101,6 +101,11 @@
       src: "files/server.properties"
       dest: "{{minecraft_dir}}/{{server_name}}/server.properties"
 
+  - name: "Install utilities"
+    copy:
+      src: "../utilities"
+      dest: "{{minecraft_dir}}/"
+
   - name: "Add periodic backup script to crontab"
     cron:
       name: "Backup creation"
