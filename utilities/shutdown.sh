@@ -63,7 +63,7 @@ minecraft_msg () {
 # waits for it to exit.
 shutdown_server () {
     minecraft_cmd "stop"
-    pid=`pgrep -f ServerStart.sh`
+    pid=`pgrep -f server-start.sh`
     while ps -p $pid > /dev/null; do
         sleep 1
     done
@@ -81,8 +81,8 @@ mypid=$$
 if [[ "$(ps -o stat= -p $mypid)" =~ \+ ]]; then
     # Foreground, script mode
     echo "Notifying users"
-    minecraft_msg "[AWS] Warning! Server is shutting down!" "red"
-    minecraft_msg "[AWS] Server going down in $DELAY seconds!" "red"
+    minecraft_msg "[MINING-CAMP] Warning! Server is shutting down!" "red"
+    minecraft_msg "[MINING-CAMP] Server going down in $DELAY seconds!" "red"
 
     # Brief delay, allowing players to finish up before shutting down
     echo "Shutting down server in $DELAY seconds"
@@ -90,7 +90,7 @@ if [[ "$(ps -o stat= -p $mypid)" =~ \+ ]]; then
     shutdown_server
 
     echo "Creating and pushing backup to S3"
-    $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup_current
+    $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup
 else
     # Background, daemon mode
     echo "Running in background mode!"
@@ -112,15 +112,15 @@ else
             action=`echo $resp | jq -r '.action'`
             time=`echo $resp | jq -r '.time'`
 
-            minecraft_msg "[AWS] Warning! Spot instance terminating!" "red"
-            minecraft_msg "[AWS] Server going down in $DELAY seconds!" "red"
+            minecraft_msg "[MINING-CAMP] Warning! Spot instance terminating!" "red"
+            minecraft_msg "[MINING-CAMP] Server going down in $DELAY seconds!" "red"
 
             # Brief delay, allowing players to finish up before shutting down
             sleep $DELAY
             shutdown_server
 
             # Create and push a backup to S3
-            $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup_current
+            $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup
 
             break
         fi
