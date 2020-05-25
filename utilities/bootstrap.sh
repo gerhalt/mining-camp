@@ -16,7 +16,7 @@ cd $1
 session_name=minecraft
 tmux new-session -s ${session_name} -d
 pane=${session_name}:0.0
-tmux send-keys -t "$pane" 'sh ./ServerStart.sh' C-m
+tmux send-keys -t "$pane" 'sh ./server-start.sh' C-m
 
 echo "Minecraft server launched, attach to it by running:"
 echo "tmux attach-session -t ${session_name}"
