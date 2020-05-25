@@ -61,7 +61,7 @@ minecraft_cmd "/save-all flush"
 sleep 15
 
 # Delegate backup create and transfer to prospector
-$MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup
+$MINECRAFT_ROOT/utilities/prospector.py backup
 
 # Log and notify server users
 if [ $? -eq 0 ]; then

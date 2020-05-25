@@ -7,7 +7,7 @@
   tasks:
   - name: "Shutdown server and push backup to S3"
     shell: |
-        /minecraft/mining-camp/utilities/shutdown.sh /minecraft
+        /minecraft/utilities/shutdown.sh /minecraft
 
 - name: "Set ASG size to 0"
   hosts: localhost

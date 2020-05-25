@@ -64,11 +64,6 @@
         mount /dev/xvdb {{minecraft_dir}}
         chown ubuntu:ubuntu {{minecraft_dir}}
 
-  - name: "Clone git repo into minecraft directory"
-    git:
-      repo: https://github.com/gerhalt/mining-camp.git
-      dest: "{{minecraft_dir}}/mining-camp"
-
   - name: "Install Python requirements"
     become: true
     shell: |
@@ -110,17 +105,17 @@
     cron:
       name: "Backup creation"
       minute: "*/30"
-      job: "{{minecraft_dir}}/mining-camp/utilities/backup.sh {{minecraft_dir}}"
+      job: "{{minecraft_dir}}/utilities/backup.sh {{minecraft_dir}}"
 
   - name: "Start emergency shutdown monitoring script in the background"
     # In order to run a background process, we detach inputs and outputs and
     # use nohup. This runs shutdown.sh in its daemon mode.
     shell: |
-      nohup {{minecraft_dir}}/mining-camp/utilities/shutdown.sh {{minecraft_dir}} </dev/null >/dev/null 2>&1 &
+      nohup {{minecraft_dir}}/utilities/shutdown.sh {{minecraft_dir}} </dev/null >/dev/null 2>&1 &
 
   - name: "Fetch most recent backup from S3 and install it"
     shell: |
-      {{minecraft_dir}}/mining-camp/utilities/prospector.py fetch
+      {{minecraft_dir}}/utilities/prospector.py fetch
 
   # If using the old elastic IP method, we associate the IP with this instance
   - name: "Associate elastic IP"
@@ -143,4 +138,4 @@
 
   - name: "Start server bootstrap script"
     shell: |
-      {{minecraft_dir}}/mining-camp/utilities/bootstrap.sh {{minecraft_dir}}/{{server_name}}
+      {{minecraft_dir}}/utilities/bootstrap.sh {{minecraft_dir}}/{{server_name}}

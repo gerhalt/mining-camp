@@ -90,7 +90,7 @@ if [[ "$(ps -o stat= -p $mypid)" =~ \+ ]]; then
     shutdown_server
 
     echo "Creating and pushing backup to S3"
-    $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup
+    $MINECRAFT_ROOT/utilities/prospector.py backup
 else
     # Background, daemon mode
     echo "Running in background mode!"
@@ -120,7 +120,7 @@ else
             shutdown_server
 
             # Create and push a backup to S3
-            $MINECRAFT_ROOT/mining-camp/utilities/prospector.py backup
+            $MINECRAFT_ROOT/utilities/prospector.py backup
 
             break
         fi
