@@ -101,11 +101,11 @@
       src: "files/server.properties"
       dest: "{{minecraft_dir}}/{{server_name}}/server.properties"
 
-  - name: "Add backup script to crontab"
+  - name: "Add periodic backup script to crontab"
     cron:
-      name: "minecraft backup monitor"
-      minute: "*/5"
-      job: "{{minecraft_dir}}/mining-camp/utilities/prospector.py backup"
+      name: "Backup creation"
+      minute: "*/30"
+      job: "{{minecraft_dir}}/mining-camp/utilities/backup.sh {{minecraft_dir}}"
 
   - name: "Start emergency shutdown monitoring script in the background"
     # In order to run a background process, we detach inputs and outputs and
