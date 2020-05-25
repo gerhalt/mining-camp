@@ -67,7 +67,7 @@
   - name: "Install Python requirements"
     become: true
     shell: |
-      pip install -r '{{minecraft_dir}}/mining-camp/requirements.txt'
+      pip install -r '../requirements.txt'
 
   - name: "Ensure server tarball doesn't exist"
     file:
