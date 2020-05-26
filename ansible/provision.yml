@@ -98,6 +98,7 @@
 
   - name: "Install utilities"
     copy:
+      mode: 0755
       src: "../utilities"
       dest: "{{minecraft_dir}}/"
 
