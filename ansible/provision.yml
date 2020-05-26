@@ -84,7 +84,7 @@
   - name: "Extract and install server"
     shell: |
       cd {{minecraft_dir}}
-      tar -xzvf {{server_file}}
+      tar -pxzvf {{server_file}}
 
   - name: "Render and install prospector config"
     template:
